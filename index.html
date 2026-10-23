@@ -1,0 +1,1159 @@
+<title>Roda da Convivência Senac</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/SplitText.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/ScrambleTextPlugin.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.net.min.js"></script>
+<style>
+/* Layout: palco de game show. Roleta à esquerda, placar à direita; cada fase (suspense, desafio, revelação) abre em tela cheia por cima do palco. */
+:root {
+  color-scheme: dark;
+  --stage: #06162e;
+  --stage-2: #0c2549;
+  --panel: #10305c;
+  --line: #24497e;
+  --ink: #f2f6fc;
+  --muted: #a3b6d3;
+  --blue: #1a6ad1;
+  --navy: #004a8d;
+  --orange: #f6921e;
+  --gold: #ffcf4d;
+  --good: #2fc27a;
+  --bad: #ff5a5f;
+  --disc: #c86bff;
+  --swap: #3fd0c9;
+  --p-red: #e5484d;
+  --p-green: #2aa866;
+  --p-blue: #2f7fe0;
+  --p-yellow: #f5c518;
+  --on-yellow: #2b2100;
+  --font-display: "Bricolage Grotesque", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --r: 18px;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: radial-gradient(1200px 700px at 30% 10%, #12366b 0%, var(--stage) 60%) fixed, var(--stage);
+  color: var(--ink); font-family: var(--font-body); font-size: 16px; margin: 0; overflow-x: hidden;
+}
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+h1, h2, h3 { font-family: var(--font-display); margin: 0; letter-spacing: -0.01em; }
+.eyebrow { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--orange); margin: 0; }
+
+/* ---------- Topo ---------- */
+.top {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding-block: 14px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--stage) 80%, transparent);
+}
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand-mark { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; background: var(--navy); border: 2px solid var(--orange); font-family: var(--font-display); font-weight: 800; font-size: 1.5rem; flex: none; }
+.brand h1 { font-size: 1.25rem; line-height: 1.1; }
+.brand p { margin: 2px 0 0; font-size: 0.72rem; color: var(--muted); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.tool { padding: 8px 12px; border-radius: 999px; border: 1px solid var(--line); font-size: 0.8rem; font-weight: 700; color: var(--muted); background: var(--stage-2); }
+.tool:hover { color: var(--ink); border-color: var(--orange); }
+.tool[aria-pressed="false"] { opacity: 0.6; }
+
+/* ---------- Palco ---------- */
+.stage {
+  display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: clamp(20px, 4vw, 56px);
+  align-items: center; max-width: 1360px; margin: 0 auto;
+  padding-block: clamp(16px, 3vw, 36px); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wheel-wrap { position: relative; width: min(100%, 640px); aspect-ratio: 1; margin: 0 auto; max-width: 100%; }
+.wheel-wrap::before { content: ""; position: absolute; inset: -4%; border-radius: 50%; background: radial-gradient(circle, rgba(246,146,30,0.28), transparent 65%); filter: blur(8px); }
+#wheel { position: relative; width: 100%; height: 100%; display: block; }
+.pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); z-index: 3; width: 0; height: 0; border-left: 26px solid transparent; border-right: 26px solid transparent; border-top: 52px solid var(--gold); filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5)); transform-origin: 50% 0; }
+.pointer.kick { animation: kick 0.12s ease-out; }
+@keyframes kick { 50% { transform: translateX(-50%) rotate(-14deg); } }
+.side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.round-info { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.round-info h2 { font-size: clamp(1.8rem, 3.4vw, 2.8rem); line-height: 1; }
+.round-info .count { font-family: var(--font-display); font-size: 1.1rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mode-pill { display: inline-flex; gap: 6px; align-items: center; padding: 5px 12px; border-radius: 999px; background: var(--stage-2); border: 1px solid var(--line); font-size: 0.8rem; font-weight: 800; color: var(--muted); }
+.progress { height: 8px; border-radius: 99px; background: var(--stage-2); overflow: hidden; border: 1px solid var(--line); }
+.progress span { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--orange), var(--gold)); transition: width 0.6s ease; }
+.board { display: grid; gap: 10px; }
+.team { display: grid; grid-template-columns: 14px 1fr auto; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 14px; background: var(--stage-2); border: 2px solid transparent; transition: border-color 0.3s, background 0.3s; }
+.team .dot { width: 14px; height: 14px; border-radius: 50%; }
+.team .name { font-weight: 800; font-size: 1.05rem; min-width: 0; overflow-wrap: anywhere; }
+.team .score { font-family: var(--font-display); font-weight: 800; font-size: 1.6rem; font-variant-numeric: tabular-nums; display: inline-block; }
+.team.active { border-color: var(--orange); background: var(--panel); transform: translateX(-6px); }
+.team.active .name::after { content: "  ● na vez"; font-size: 0.72rem; color: var(--orange); letter-spacing: 0.08em; text-transform: uppercase; }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); font-weight: 700; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.spin { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 22px 28px; border-radius: 999px; background: linear-gradient(180deg, #ffad45, var(--orange)); color: #2a1300; font-family: var(--font-display); font-weight: 800; font-size: clamp(1.4rem, 2.6vw, 2rem); letter-spacing: 0.02em; box-shadow: 0 8px 0 #b8640a, 0 16px 40px rgba(246,146,30,0.35); transition: box-shadow 0.12s; }
+.spin:active { box-shadow: 0 2px 0 #b8640a; }
+.spin:disabled { filter: grayscale(0.6); opacity: 0.6; cursor: not-allowed; }
+.spin kbd, .hint kbd { font-family: var(--font-body); font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; border: 1px solid currentColor; opacity: 0.7; }
+.hint { font-size: 0.85rem; color: var(--muted); text-align: center; margin: 0; }
+
+/* ---------- Telas ---------- */
+.screen {
+  position: fixed; inset: 0; z-index: 40; overflow-y: auto;
+  padding-top: max(16px, env(safe-area-inset-top, 0px)); padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: rgba(3, 12, 28, 0.95); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center;
+}
+.screen > .inner { position: relative; z-index: 1; width: 100%; max-width: 1180px; margin: auto; }
+#stage-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; transform-origin: 30% 50%; filter: brightness(0.6); }
+.top, .stage { position: relative; z-index: 1; }
+.top { background: color-mix(in srgb, var(--stage) 70%, transparent) !important; }
+.screen.clear { background: rgba(3, 12, 28, 0.62); }
+.rays { position: absolute; left: 50%; top: 50%; width: 175%; aspect-ratio: 1; transform: translate(-50%, -50%); opacity: 0; pointer-events: none; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgba(255,207,77,0.24) 0deg 6deg, transparent 6deg 18deg);
+  -webkit-mask: radial-gradient(circle, #000 0 22%, transparent 62%); mask: radial-gradient(circle, #000 0 22%, transparent 62%); }
+.wglow { position: absolute; inset: 1%; border-radius: 50%; pointer-events: none; }
+.ring { position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; border-radius: 50%; border: 6px solid var(--c, var(--gold)); transform: translate(-50%, -50%); opacity: 0; pointer-events: none; }
+#flash { position: fixed; inset: 0; z-index: 70; background: #fff; opacity: 0; pointer-events: none; }
+#landpop { position: fixed; z-index: 75; left: 50%; top: 50%; transform: translate(-50%, -50%); padding: clamp(14px, 2.4vw, 26px) clamp(22px, 4vw, 44px); border-radius: 22px; text-align: center; background: rgba(6,22,46,0.9); border: 3px solid var(--c, var(--gold)); box-shadow: 0 0 80px var(--c, var(--gold)); opacity: 0; visibility: hidden; pointer-events: none; max-width: calc(100% - 32px); }
+#landpop small { display: block; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
+#landpop b { font-family: var(--font-display); font-size: clamp(2rem, 6vw, 4.4rem); line-height: 1; }
+/* Revelação em cartões-chave */
+.ra { max-width: 1000px !important; display: grid; gap: clamp(12px, 1.8vw, 18px); }
+.ra-top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.ra-thumb { width: clamp(64px, 8vw, 96px); aspect-ratio: 1; border-radius: 16px; overflow: hidden; flex: none; border: 2px solid rgba(255,255,255,0.18); background: #fff; }
+.ra-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ra-thumb.contain img { object-fit: contain; }
+.ra-head { display: grid; gap: 4px; min-width: 0; }
+.ra-head .line { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.pts-up { font-family: var(--font-display); color: var(--gold); font-size: clamp(1.1rem, 2.2vw, 1.6rem); font-variant-numeric: tabular-nums; }
+.slogan { font-family: var(--font-display); font-size: clamp(1.7rem, 4vw, 3.2rem); line-height: 1.08; margin: 0; }
+.slogan mark { color: inherit; background: linear-gradient(transparent 58%, rgba(255,207,77,0.5) 58%) no-repeat; background-size: 0% 100%; padding: 0 4px; transition: background-size 0.9s ease; }
+.slogan mark.on { background-size: 100% 100%; }
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; perspective: 1000px; }
+.kc { padding: clamp(12px, 1.6vw, 18px); border-radius: 16px; background: var(--panel); border-top: 5px solid var(--c); display: grid; gap: 6px; align-content: start; }
+.kc .ic { font-size: clamp(1.4rem, 2.6vw, 2rem); line-height: 1; }
+.kc h4 { margin: 0; font-size: 0.74rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--c); }
+.kc b { font-family: var(--font-display); font-size: clamp(1.05rem, 1.8vw, 1.45rem); line-height: 1.15; }
+.kc b.strike { text-decoration: line-through; text-decoration-color: var(--bad); text-decoration-thickness: 3px; color: #ffc4c6; }
+.kc p { margin: 0; color: #c8d6ea; font-size: clamp(0.85rem, 1.25vw, 0.98rem); line-height: 1.45; }
+.talkbar { padding: 12px 16px; border-radius: 14px; background: rgba(255,207,77,0.1); border: 2px dashed var(--gold); font-size: 1.05rem; line-height: 1.45; }
+.talkbar b { color: var(--gold); }
+.extra { padding: 12px 16px; border-radius: 14px; background: rgba(63,208,201,0.1); border-left: 5px solid var(--swap); line-height: 1.5; }
+.extra b { color: #a8f1ec; }
+.more { border-radius: 14px; background: var(--stage-2); padding: 12px 16px; }
+.more summary { cursor: pointer; font-weight: 800; color: var(--muted); }
+.more summary:hover { color: var(--ink); }
+.more .inner-more { display: grid; gap: 10px; margin-top: 10px; }
+.more p { margin: 0; color: #d6e2f3; line-height: 1.55; }
+.more h5 { margin: 0 0 4px; font-size: 0.74rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--orange); }
+
+/* Configuração */
+.setup { max-width: 860px !important; display: grid; gap: 24px; }
+.setup h2 { font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1.02; }
+.setup h2 em { font-style: normal; color: var(--orange); }
+.setup .lead { color: var(--muted); font-size: 1.05rem; line-height: 1.55; margin: 10px 0 0; max-width: 62ch; }
+.field { display: grid; gap: 10px; }
+.field > .label { font-weight: 800; font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { padding: 10px 16px; border-radius: 12px; border: 2px solid var(--line); background: var(--stage-2); font-weight: 700; }
+.chip[aria-pressed="true"] { border-color: var(--orange); background: var(--panel); color: var(--gold); }
+.modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.mode { text-align: left; display: grid; align-content: start; gap: 6px; padding: 14px 16px; border-radius: 14px; border: 2px solid var(--line); background: var(--stage-2); }
+.mode b { font-family: var(--font-display); font-size: 1.15rem; }
+.mode span { color: var(--muted); font-size: 0.88rem; line-height: 1.4; }
+.mode[aria-pressed="true"] { border-color: var(--orange); background: var(--panel); }
+.mode[aria-pressed="true"] b { color: var(--gold); }
+.names { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.names input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: var(--stage-2); color: var(--ink); font: inherit; font-weight: 700; }
+.plates { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; color: var(--muted); font-size: 0.92rem; }
+.plate { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--ink); }
+.plate i { width: 22px; height: 16px; border-radius: 4px; display: inline-block; }
+.cta { justify-self: start; padding: 18px 30px; border-radius: 14px; background: var(--orange); color: #2a1300; font-family: var(--font-display); font-weight: 800; font-size: 1.3rem; box-shadow: 0 6px 0 #b8640a; }
+.cta:active { transform: translateY(4px); box-shadow: 0 2px 0 #b8640a; }
+.ghost { padding: 14px 22px; border-radius: 14px; border: 2px solid var(--line); font-weight: 800; }
+.ghost:hover { border-color: var(--orange); }
+
+/* Suspense */
+.suspense { display: grid; justify-items: center; gap: 20px; text-align: center; cursor: pointer; }
+.suspense .art { width: min(54vh, 84vw); aspect-ratio: 1; max-width: 100%; border-radius: 28px; overflow: hidden; border: 4px solid rgba(255,255,255,0.18); box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 12px rgba(246,146,30,0.12); background: #f3f5f9; }
+.suspense .art img, .rv-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.contain img { object-fit: contain !important; background: #fff; }
+.suspense h2 { font-size: clamp(2rem, 5vw, 3.6rem); min-height: 1.1em; }
+.suspense .tap { font-weight: 700; color: var(--muted); animation: pulse 1.6s infinite; margin: 0; }
+@keyframes pulse { 50% { opacity: 0.45; } }
+.kind { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; font-weight: 800; font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.kind.reg { background: rgba(246,146,30,0.16); color: var(--orange); border: 1px solid var(--orange); }
+.kind.disc { background: rgba(200,107,255,0.16); color: #e3b6ff; border: 1px solid var(--disc); }
+.kind.trocar { background: rgba(63,208,201,0.16); color: #a8f1ec; border: 1px solid var(--swap); }
+
+/* Desafio */
+.challenge { display: grid; gap: clamp(14px, 2.2vw, 24px); }
+.ch-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.ch-tags { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.tag { padding: 7px 14px; border-radius: 999px; font-weight: 800; font-size: 0.85rem; background: var(--panel); border: 1px solid var(--line); }
+.tag.turn { background: var(--orange); color: #2a1300; border-color: transparent; }
+.timer { position: relative; width: 88px; height: 88px; flex: none; }
+.timer svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.timer circle { fill: none; stroke-width: 9; }
+.timer .track { stroke: var(--stage-2); }
+.timer .bar { stroke: var(--gold); stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.3s; }
+.timer.low .bar { stroke: var(--bad); }
+.timer b { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-display); font-size: 2rem; font-variant-numeric: tabular-nums; }
+.timer.low b { color: var(--bad); animation: pulse 0.5s infinite; }
+.question { font-size: clamp(1.5rem, 3.1vw, 2.5rem); line-height: 1.18; max-width: 34ch; }
+.question small { display: block; font-family: var(--font-body); font-size: 0.5em; font-weight: 600; color: var(--muted); margin-bottom: 10px; letter-spacing: 0; }
+.question .hl { color: #e3b6ff; }
+.quote { font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.12; padding: 22px 24px 18px; border-radius: 18px; background: rgba(255,90,95,0.1); border: 2px dashed var(--bad); color: #ffd3d4; max-width: 30ch; position: relative; margin: 6px 0 0; }
+.quote::before { content: "Frase a evitar"; position: absolute; top: -12px; left: 18px; padding: 2px 10px; border-radius: 99px; background: var(--bad); color: #fff; font-family: var(--font-body); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.banner { padding: 12px 18px; border-radius: 12px; font-weight: 800; font-size: 1.05rem; background: rgba(255,90,95,0.14); border: 2px solid var(--bad); color: #ffd3d4; animation: shake 0.4s; }
+@keyframes shake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+.options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.opt { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 16px; text-align: left; padding: 16px 18px; border-radius: var(--r); background: var(--stage-2); border: 3px solid var(--line); font-size: clamp(1rem, 1.5vw, 1.2rem); font-weight: 600; line-height: 1.32; transition: border-color 0.15s; }
+.options.long .opt { font-size: clamp(0.95rem, 1.35vw, 1.1rem); font-weight: 500; }
+.opt:hover:not(:disabled) { border-color: var(--c); }
+.opt .key { width: 58px; height: 58px; border-radius: 14px; display: grid; place-items: center; background: var(--c); color: #fff; font-family: var(--font-display); font-weight: 800; font-size: 1.6rem; line-height: 1; }
+.opt .key small { display: block; font-family: var(--font-body); font-size: 0.55rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+.opt[data-c="3"] .key, .answer[data-c="3"] .key, .others li[data-c="3"] .k { color: var(--on-yellow); }
+.opt span.txt { min-width: 0; }
+.opt.wrong { opacity: 0.35; border-color: var(--bad); text-decoration: line-through; }
+.opt.right { border-color: var(--good); background: rgba(47,194,122,0.16); animation: glow 0.9s 2; }
+@keyframes glow { 50% { box-shadow: 0 0 0 8px rgba(47,194,122,0.3); } }
+.opt:disabled { cursor: default; }
+.ch-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.steal { display: grid; gap: 12px; padding: 16px; border-radius: var(--r); background: var(--panel); border: 2px solid var(--good); }
+.steal p { margin: 0; font-weight: 800; }
+
+/* Revelação */
+.reveal { display: grid; grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr); gap: clamp(18px, 3vw, 40px); align-items: start; }
+.rv-art { border-radius: 24px; overflow: hidden; aspect-ratio: 1; max-width: 100%; background: #f3f5f9; border: 3px solid rgba(255,255,255,0.15); position: sticky; top: 0; }
+.rv-body { display: grid; gap: 16px; min-width: 0; }
+.verdict { font-size: clamp(2.2rem, 4.6vw, 3.6rem); line-height: 1; }
+.verdict.ok { color: var(--good); } .verdict.no { color: var(--bad); }
+.verdict-sub { margin: 6px 0 0; color: var(--muted); font-weight: 700; font-size: 1.05rem; }
+.answer { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; padding: 14px 16px; border-radius: 14px; background: rgba(47,194,122,0.12); border: 2px solid var(--good); font-weight: 700; font-size: 1.08rem; line-height: 1.4; }
+.answer .key { width: 44px; height: 44px; border-radius: 10px; background: var(--c); display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 1.3rem; color: #fff; }
+.swap-show { display: grid; gap: 8px; }
+.swap-show .from { font-family: var(--font-display); font-size: 1.3rem; color: #ffb3b6; position: relative; justify-self: start; }
+.swap-show .from::after { content: ""; position: absolute; left: -4px; right: -4px; top: 52%; height: 3px; background: var(--bad); transform-origin: left; animation: strike 0.6s 0.5s both; }
+@keyframes strike { from { transform: scaleX(0); } }
+.swap-show .arrow { color: var(--swap); font-weight: 800; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.block h4 { margin: 0 0 6px; font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--orange); }
+.block p { margin: 0; font-size: 1.05rem; line-height: 1.55; max-width: 64ch; }
+.block.box { padding: 14px 18px; border-radius: 14px; background: var(--stage-2); }
+.legal { padding: 14px 18px; border-radius: 14px; background: var(--stage-2); border-left: 5px solid var(--blue); }
+.legal p { font-size: 0.97rem; color: #d6e2f3; }
+.law { padding: 14px 18px; border-radius: 14px; background: rgba(200,107,255,0.1); border-left: 5px solid var(--disc); }
+.law h4 { color: #e3b6ff; }
+.law p { font-size: 0.97rem; }
+.act { padding: 14px 18px; border-radius: 14px; background: rgba(63,208,201,0.1); border-left: 5px solid var(--swap); }
+.act h4 { color: #a8f1ec; }
+.talk { padding: 14px 18px; border-radius: 14px; background: rgba(255,207,77,0.1); border: 2px dashed var(--gold); }
+.talk h4 { color: var(--gold); }
+.tagline { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.dtag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(200,107,255,0.16); border: 1px solid var(--disc); color: #f0d9ff; font-weight: 800; font-size: 0.85rem; }
+.others { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.others li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; font-size: 0.95rem; line-height: 1.4; color: #d6e2f3; }
+.others .k { width: 28px; height: 28px; border-radius: 7px; display: grid; place-items: center; background: var(--c); color: #fff; font-family: var(--font-display); font-weight: 800; font-size: 0.95rem; }
+.others b { color: #e3b6ff; }
+.rv-foot { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* Final */
+.final { text-align: center; display: grid; gap: 26px; justify-items: center; }
+.final h2 { font-size: clamp(2.4rem, 6vw, 4.4rem); line-height: 1; }
+.podium { display: flex; align-items: flex-end; justify-content: center; gap: 14px; width: 100%; max-width: 760px; }
+.pod { flex: 1; min-width: 0; display: grid; gap: 8px; justify-items: center; }
+.pod .bar { width: 100%; border-radius: 14px 14px 0 0; display: grid; place-items: start center; padding-top: 12px; font-family: var(--font-display); font-weight: 800; font-size: 2.4rem; color: #fff; transform-origin: bottom; }
+.pod .nm { font-weight: 800; font-size: 1.1rem; overflow-wrap: anywhere; }
+.pod .pts { font-family: var(--font-display); font-size: 1.3rem; color: var(--gold); font-variant-numeric: tabular-nums; }
+.final .note { color: var(--muted); max-width: 56ch; line-height: 1.5; margin: 0; }
+.confirm { display: grid; gap: 18px; max-width: 460px !important; text-align: center; justify-items: center; }
+.confirm p { margin: 0; color: var(--muted); }
+.row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+#fx { position: fixed; inset: 0; pointer-events: none; z-index: 80; width: 100%; height: 100%; }
+.float-pts { position: fixed; z-index: 85; pointer-events: none; left: 50%; top: 40%; transform: translate(-50%, -50%); font-family: var(--font-display); font-weight: 800; font-size: clamp(3rem, 9vw, 7rem); color: var(--gold); text-shadow: 0 6px 30px rgba(0,0,0,0.6); animation: floatUp 1.4s ease-out forwards; }
+@keyframes floatUp { 0% { opacity: 0; transform: translate(-50%, -20%) scale(0.5); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); } 100% { opacity: 0; transform: translate(-50%, -140%) scale(1); } }
+
+@media (max-width: 860px) {
+  .cards { grid-template-columns: 1fr; }
+  .stage { grid-template-columns: 1fr; }
+  .reveal { grid-template-columns: 1fr; }
+  .rv-art { position: static; max-height: 38vh; aspect-ratio: auto; }
+  .rv-art img { max-height: 38vh; }
+  .team.active { transform: none; }
+  .modes { grid-template-columns: 1fr; }
+  .grid2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .options { grid-template-columns: 1fr; }
+  .opt .key { width: 46px; height: 46px; font-size: 1.3rem; }
+  .timer { width: 70px; height: 70px; }
+  .timer b { font-size: 1.6rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+</style>
+
+<div id="stage-bg" aria-hidden="true"></div>
+<header class="top">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true">S</div>
+    <div><h1>Roda da Convivência</h1><p>Senac Araraquara · Regimento e respeito às diferenças</p></div>
+  </div>
+  <div class="tools">
+    <button class="tool" id="btn-sound" aria-pressed="true" title="Atalho: M">Som ligado</button>
+    <button class="tool" id="btn-full" title="Atalho: F">Tela cheia</button>
+    <button class="tool" id="btn-reset">Reiniciar</button>
+  </div>
+</header>
+
+<main class="stage">
+  <div class="wheel-wrap">
+    <div class="rays" id="rays"></div><div class="wglow" id="wglow"></div><div id="rings"></div>
+    <div class="pointer" id="pointer"></div>
+    <canvas id="wheel" aria-label="Roleta com os temas do jogo"></canvas>
+  </div>
+  <section class="side">
+    <div style="display:grid;gap:8px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><p class="eyebrow" id="phase-label">Prepare a turma</p><span class="mode-pill" id="mode-pill"></span></div>
+      <div class="round-info"><h2 id="turn-title">Quem gira?</h2><span class="count" id="round-count">Rodada 0 de 0</span></div>
+    </div>
+    <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+    <div class="board" id="board"></div>
+    <div class="legend" id="legend"></div>
+    <button class="spin" id="spin">GIRAR A RODA <kbd>espaço</kbd></button>
+    <p class="hint">Cada fatia sorteada sai da roda. Acerto vale 100 pontos + bônus de tempo; repasse vale 50. Toda rodada vale o mesmo.</p>
+  </section>
+</main>
+
+<div id="screen-root"></div>
+<div id="flash"></div>
+<div id="landpop" role="status"><small id="lp-kind"></small><b id="lp-label"></b></div>
+<canvas id="fx"></canvas>
+
+<script>
+(() => {
+  /* ================= BIBLIOTECAS (opcionais: o jogo funciona sem elas) ================= */
+  const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const G = (!REDUCED && window.gsap) ? window.gsap : null;
+  if (G) { try { G.registerPlugin(...[window.SplitText, window.ScrambleTextPlugin].filter(Boolean)); } catch (e) {} }
+  const HAS_SPLIT = !!(G && window.SplitText), HAS_SCRAMBLE = !!(G && window.ScrambleTextPlugin);
+
+  /* ================= CONTEÚDO ================= */
+  const PLATES = [
+    { name: "Vermelho", color: "var(--p-red)" }, { name: "Verde", color: "var(--p-green)" },
+    { name: "Azul", color: "var(--p-blue)" }, { name: "Amarelo", color: "var(--p-yellow)" }
+  ];
+  const TEAM_COLORS = ["#f6921e", "#3fd0c9", "#ff6fae", "#b49cff"];
+  const SUNFLOWER = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#eaf2ff"/>' + Array.from({length:16},(_,i)=>'<ellipse cx="100" cy="58" rx="13" ry="30" fill="#ffc531" transform="rotate('+(i*22.5)+' 100 95)"/>').join('') + '<circle cx="100" cy="95" r="27" fill="#6b3d1f"/></svg>');
+  const SWAP_ART = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#0c2549"/><rect x="22" y="40" width="110" height="62" rx="16" fill="#ff5a5f"/><path d="M50 100 l-8 20 24-20z" fill="#ff5a5f"/><rect x="68" y="98" width="110" height="62" rx="16" fill="#3fd0c9"/><path d="M150 158 l8 20 -24-20z" fill="#3fd0c9"/><path d="M44 71h66" stroke="#fff" stroke-width="8" stroke-linecap="round"/><path d="M38 60l78 22" stroke="#06162e" stroke-width="6" stroke-linecap="round"/><path d="M90 129h66" stroke="#06162e" stroke-width="8" stroke-linecap="round"/></svg>');
+
+  // Base no Regimento, comum a todos os tipos de discriminação
+  const REG_DISC = "Art. 25, II: ser respeitado em suas características pessoais. Art. 26, III: não praticar, induzir ou incitar discriminação, seja por raça, cor, gênero, orientação sexual, convicções, deficiência, idade ou qualquer outra característica.";
+
+  const DISC = [
+    { id: "racismo", label: "Racismo", icon: "✊🏿", image: "img/disc/racismo.jpg", avoid: ["religiosa"],
+      def: "O racismo é um sistema que cria uma hierarquia fundamentada na raça, em que determinado grupo racial passa a ter superioridade moral, cultural, econômica e política diante dos demais. Promove a inferiorização de um grupo em vários níveis do cotidiano.",
+      ex: ["Uma pessoa é chamada ou tratada por meio de termos pejorativos que ferem a sua identidade racial.",
+           "Um aprendiz negro é seguido pelo segurança da loja onde trabalha, enquanto os colegas brancos circulam sem ser vigiados.",
+           "Colegas dizem que o cabelo crespo de uma estudante é \"desarrumado\" e pedem que ela o prenda para a apresentação.",
+           "Ao ver um homem negro de terno na recepção, um cliente pergunta a ele onde está \"o gerente de verdade\"."],
+      law: "Constituição, art. 5º, XLII: racismo é crime inafiançável e imprescritível (Lei 7.716/1989). Desde a Lei 14.532/2023, a injúria racial também é tipificada como racismo.",
+      act: "Não use apelidos ou \"brincadeiras\" sobre cor, cabelo ou traços. Se presenciar, não ria junto: acolha quem foi atingido e leve o caso à coordenação.",
+      talk: "Que expressões do dia a dia carregam racismo sem que a gente perceba?" },
+    { id: "lgbt", label: "LGBTQIAPN+fobia", icon: "🏳️‍🌈", image: "img/disc/lgbt.jpg",
+      def: "É a discriminação, aversão ou ódio baseado na inferiorização das pessoas que pertencem à comunidade LGBTQIAPN+. Homofobia costuma ser usado como sinônimo, mas tecnicamente se refere só às violências contra pessoas homossexuais.",
+      ex: ["Uma pessoa é constantemente tratada pelo pronome que não corresponde à sua identidade de gênero.",
+           "Um colega insiste em chamar uma estudante trans pelo nome antigo, mesmo depois de ela pedir para usar o nome social.",
+           "No intervalo, alguém espalha \"piadas\" sobre um colega gay e a turma passa a excluí-lo dos grupos de trabalho.",
+           "Na seleção de estágio, o recrutador descarta um candidato depois de saber que ele tem um namorado."],
+      law: "Em 2019, o STF (ADO 26 e MI 4733) enquadrou a homofobia e a transfobia como crimes de racismo, previstos na Lei 7.716/1989.",
+      act: "Sempre respeite o nome e os pronomes com que a pessoa se identifica. Nunca questione orientação sexual ou identidade de gênero.",
+      talk: "Por que usar o nome social de alguém é uma forma de respeito básico?" },
+    { id: "capacitismo", label: "Capacitismo", icon: "♿", image: "img/disc/capacitismo.jpg",
+      def: "É o preconceito e a discriminação contra pessoas com deficiência, que buscam colocá-las em condição de incapacidade e inferioridade apenas por suas limitações físicas, mentais ou sensoriais, reduzindo-as à sua deficiência.",
+      ex: ["Uma pessoa com deficiência visual é excluída do processo seletivo para docente por ser considerada incapaz de exercer a função.",
+           "O grupo não deixa a colega cadeirante apresentar a parte dela do projeto, dizendo que \"é melhor poupá-la\".",
+           "Um colega fala alto e devagar com uma pessoa surda que usa aparelho auditivo, como se ela não fosse entender nada.",
+           "Na empresa, ninguém convida o funcionário autista para as reuniões porque \"ele não vai acompanhar\"."],
+      law: "Lei Brasileira de Inclusão (Lei 13.146/2015), art. 88: praticar, induzir ou incitar discriminação de pessoa em razão de sua deficiência é crime.",
+      act: "Pergunte se a pessoa precisa de ajuda. Se a resposta for sim, a segunda pergunta é: como posso te ajudar?",
+      talk: "Que barreiras da nossa escola ou do trabalho poderiam ser removidas?" },
+    { id: "misoginia", label: "Misoginia", icon: "🚺", image: "img/disc/genero.jpg", avoid: ["machismo"],
+      def: "A misoginia é um tipo de preconceito caracterizado pelo desprezo ou ódio dirigido às mulheres. Está diretamente ligada à violência contra a mulher: agressões físicas, psicológicas, patrimoniais, perseguições e outras violências.",
+      ex: ["Grande parte dos assassinatos de mulheres é motivada pelo ódio às mulheres; esses casos são chamados de feminicídio.",
+           "Num grupo de mensagens da turma, circulam memes que tratam mulheres como objetos e incentivam humilhá-las.",
+           "Um rapaz persegue e ameaça a ex-namorada nas redes sociais porque ela terminou o relacionamento.",
+           "Comentários de ódio lotam o perfil de uma jogadora de e-sports apenas por ela ser mulher."],
+      law: "Lei Maria da Penha (Lei 11.340/2006) e Lei 14.994/2024, que tornou o feminicídio crime autônomo, com pena de 20 a 40 anos. O PL 896/2023, que inclui a misoginia na Lei do Racismo, foi aprovado no Senado e tramita na Câmara.",
+      act: "Não compartilhe conteúdo que humilha mulheres. Em caso de violência, acolha e oriente: Ligue 180 (Central de Atendimento à Mulher).",
+      talk: "Um meme \"só de brincadeira\" pode alimentar violência? Como?" },
+    { id: "machismo", label: "Machismo", icon: "⚖️", image: "img/disc/genero.jpg", avoid: ["misoginia"],
+      def: "O machismo é uma forma de discriminação que coloca os homens em posição de superioridade em relação às mulheres, reforçando desigualdades. Aparece em atitudes, falas e estruturas que limitam a liberdade feminina e desvalorizam suas conquistas.",
+      ex: ["Uma mulher é reprovada para uma promoção porque tem dois filhos em idade escolar e é considerada alguém que não vai se dedicar.",
+           "Na divisão do projeto, os meninos ficam com a programação e as meninas são mandadas \"cuidar da decoração\".",
+           "Uma estudante dá uma ideia na reunião e ninguém escuta; minutos depois, um colega repete a mesma ideia e é elogiado.",
+           "O gerente diz que a vaga de técnico de manutenção \"não é trabalho para mulher\"."],
+      law: "Lei 9.029/1995: proíbe práticas discriminatórias por sexo, estado civil ou situação familiar na contratação e no emprego. Lei 14.611/2023: igualdade salarial entre mulheres e homens.",
+      act: "Divida tarefas por interesse e competência, não por gênero. Dê crédito a quem teve a ideia.",
+      talk: "Em que tarefas do dia a dia ainda se diz que \"isso é coisa de homem\" ou \"de mulher\"?" },
+    { id: "xenofobia", label: "Xenofobia", icon: "🌎", image: "img/disc/xenofobia.jpg",
+      def: "É a discriminação caracterizada pela aversão, hostilidade, repúdio ou ódio dirigido a pessoas estrangeiras, de outras nacionalidades ou grupos étnicos, que pode ter fatores históricos, culturais e religiosos.",
+      ex: ["Uma pessoa é alvo de exposição desnecessária por se comunicar com sotaque ou usar expressões regionais diferentes.",
+           "Um estudante venezuelano ouve que \"veio roubar a vaga de brasileiro\" no programa de aprendizagem.",
+           "Colegas imitam o jeito de falar de uma aluna nordestina sempre que ela apresenta um trabalho.",
+           "Um cliente se recusa a ser atendido por uma atendente haitiana."],
+      law: "A Lei 7.716/1989 pune a discriminação por procedência nacional. A Lei de Migração (Lei 13.445/2017) tem o repúdio à xenofobia como princípio.",
+      act: "Valorize sotaques, culturas e histórias diferentes. Origem não define capacidade.",
+      talk: "Você já viu alguém ser zoado pelo sotaque? Como essa pessoa pode ter se sentido?" },
+    { id: "religiosa", label: "Intolerância religiosa", icon: "🕊️", image: "img/disc/religiosa.jpg", avoid: ["racismo"],
+      def: "É um conjunto de ideologias e atitudes ofensivas a crenças e práticas religiosas, ou a quem não segue uma religião. Fere a liberdade e a dignidade humana ao atacar ou desmoralizar um grupo religioso, seus elementos, rituais e divindades.",
+      ex: ["Uma pessoa adepta de uma religião de matriz africana é hostilizada e excluída por colegas que reproduzem estereótipos (racismo religioso).",
+           "Um estudante evangélico é chamado de \"fanático\" e ridicularizado por orar antes do lanche.",
+           "Colegas zombam de uma aluna muçulmana por usar o hijab e dizem que ela \"deveria tirar isso aqui\".",
+           "Um colega é chamado de \"sem caráter\" por não seguir nenhuma religião."],
+      law: "Constituição, art. 5º, VI: a liberdade de consciência e de crença é inviolável. A Lei 7.716/1989 pune a discriminação por religião.",
+      act: "Respeite símbolos, roupas e práticas religiosas, e também quem não tem religião. Ambiente laico é ambiente de respeito a todas as crenças.",
+      talk: "Qual a diferença entre não concordar com uma crença e desrespeitar quem a segue?" },
+    { id: "etarismo", label: "Etarismo", icon: "⏳", image: "img/disc/etarismo.jpg",
+      def: "Também chamado de ageísmo, é o preconceito, a intolerância e a discriminação contra pessoas com base em estereótipos ligados à idade. Atinge diferentes fases da vida, com piadas, infantilização e exclusão.",
+      ex: ["Uma tarefa deixa de ser atribuída a alguém com a frase \"Você não tem mais idade para isso!\" ou \"Você é nova demais para essa função!\".",
+           "Na turma de informática, colegas riem de uma estudante de 58 anos e dizem que ela \"nunca vai aprender tecnologia\".",
+           "As ideias de um jovem aprendiz são ignoradas pela equipe com a frase \"você é muito novo para opinar\".",
+           "Uma vaga de emprego anuncia: \"procuramos pessoas de até 35 anos, com energia\"."],
+      law: "Estatuto da Pessoa Idosa (Lei 10.741/2003), art. 96: discriminar pessoa idosa é crime. A Lei 9.029/1995 proíbe discriminação por idade no trabalho.",
+      act: "Troque o \"você não consegue\" por \"vamos aprender juntos?\". Toda idade tem algo a ensinar e a aprender.",
+      talk: "O que a turma pode aprender com colegas de outras gerações?" },
+    { id: "gordofobia", label: "Gordofobia", icon: "🫶", image: "img/disc/gordofobia.jpg",
+      def: "É o preconceito e a discriminação contra pessoas gordas, com atitudes que desvalorizam, estigmatizam e hostilizam, criando barreiras para a inclusão. Também aparece na crença de que pessoas gordas, necessariamente, não são saudáveis.",
+      ex: ["Comentar o corpo da pessoa com frases \"bem-intencionadas\", como \"Você tem o rosto tão bonito, só precisa emagrecer\".",
+           "Na escolha do time da gincana, ninguém escolhe um colega gordo, dizendo que ele \"vai atrasar a equipe\".",
+           "Uma empresa recusa uma candidata qualificada para atendimento porque ela \"não tem o perfil de imagem\" por ser gorda.",
+           "O laboratório só tem cadeiras estreitas com braços fixos e a escola não oferece outra opção para estudantes gordos."],
+      law: "Ainda não há lei federal específica; há projetos em tramitação. Ofensas sobre o corpo podem configurar injúria (Código Penal, art. 140), e o Regimento já proíbe qualquer discriminação.",
+      act: "Não comente o corpo de ninguém, nem como \"elogio\". Pense em espaços e materiais que acolham todos os corpos.",
+      talk: "Por que um \"conselho\" sobre o corpo de alguém pode machucar, mesmo com boa intenção?" }
+  ];
+  const DISC_BY = Object.fromEntries(DISC.map((d) => [d.id, d]));
+  DISC_BY.machismo.image = "img/disc/machismo.jpg";
+  // frase-síntese, título curto da lei e da atitude (cartões-chave da revelação)
+  const DISC_EXTRA = {
+    racismo: ["Cor não define ninguém.", "Racismo é crime inafiançável", "Não ria junto: acolha e comunique"],
+    lgbt: ["Respeitar nome e pronome é o básico.", "Equiparada ao racismo pelo STF", "Use o nome e o pronome certos"],
+    capacitismo: ["Pergunte antes de ajudar.", "Discriminar é crime (LBI)", "\"Como posso te ajudar?\""],
+    misoginia: ["Ódio às mulheres não é opinião.", "Maria da Penha e feminicídio", "Não compartilhe. Acolha. Ligue 180"],
+    machismo: ["Competência não tem gênero.", "Discriminar no trabalho é proibido", "Divida tarefas por competência"],
+    xenofobia: ["Origem não define capacidade.", "Discriminar por origem é crime", "Valorize sotaques e culturas"],
+    religiosa: ["Respeito a todas as crenças, e a quem não tem nenhuma.", "Liberdade de crença é inviolável", "Respeite símbolos e práticas"],
+    etarismo: ["Idade não define capacidade.", "Discriminar pessoa idosa é crime", "\"Vamos aprender juntos?\""],
+    gordofobia: ["Corpo não é assunto público.", "Ofensa pode ser injúria", "Não comente o corpo de ninguém"]
+  };
+  DISC.forEach((d) => { const [slogan, lawShort, actShort] = DISC_EXTRA[d.id]; Object.assign(d, { slogan, lawShort, actShort }); });
+
+  const SWAPS = [
+    { from: "Você é tão bonita, de rosto.", to: "Você é tão bonita!", wrong: ["Você é bonita, apesar do corpo.", "Você seria linda se emagrecesse.", "Pra quem é gordinha, você é bonita."], tag: "gordofobia", why: "O \"de rosto\" sugere que o resto do corpo não é bonito. O elogio é completo, sem condição." },
+    { from: "Nosso grupo não tem perna para fazer esse trabalho.", to: "Nosso grupo não tem pessoas suficientes para esse trabalho.", wrong: ["Nosso grupo está manco nesse trabalho.", "Nosso grupo está aleijado para esse trabalho.", "Nosso grupo não tem braço para isso."], tag: "capacitismo", why: "Usar partes do corpo ou deficiências como sinônimo de \"falta\" reforça o capacitismo. Diga o que realmente falta: pessoas." },
+    { from: "Idoso não consegue entender a tecnologia.", to: "Vamos explorar juntos essa nova ferramenta?", wrong: ["Deixa que eu faço, é mais rápido.", "Isso é difícil para a sua idade.", "Pede para o seu neto te ajudar."], tag: "etarismo", why: "A idade não define a capacidade de aprender. O convite para aprender junto inclui em vez de excluir." },
+    { from: "Brasileiro perde emprego por causa de estrangeiro.", to: "É importante que todos tenham oportunidades justas, independente da origem.", wrong: ["Estrangeiro só deveria pegar as vagas que sobram.", "Primeiro os daqui, depois os de fora.", "Imigrante pode trabalhar, mas ganhando menos."], tag: "xenofobia", why: "Culpar quem veio de fora alimenta a xenofobia. Oportunidade justa vale para todas as pessoas." },
+    { from: "Mulher é muito sensível, não serve pra liderar.", to: "Cada pessoa tem seu estilo de liderança, independente do gênero.", wrong: ["Mulher até lidera, se agir como homem.", "Mulher lidera bem só equipes de mulheres.", "Mulher é ótima para cuidar, não para mandar."], tag: "machismo", why: "Liderança não tem gênero. Associar mulheres só ao cuidado limita oportunidades." },
+    { from: "A coisa está preta!", to: "A situação está complicada.", wrong: ["A coisa está negra!", "Essa situação denegriu tudo.", "Esse problema é a ovelha negra do projeto."], tag: "racismo", why: "Usar \"preto\" ou \"negro\" como sinônimo de algo ruim reforça o racismo na linguagem. Diga exatamente o que quer dizer." },
+    { from: "Isso é coisa de mulherzinha.", to: "Qualquer pessoa pode gostar disso e fazer isso.", wrong: ["Isso é coisa de menina.", "Homem que faz isso é fraco.", "Deixa isso para as meninas."], tag: "machismo", why: "Usar o feminino como ofensa desvaloriza as mulheres. Gostos e tarefas não têm gênero." },
+    { from: "Ele é surdo, nem adianta explicar.", to: "Como você prefere que eu te explique?", wrong: ["Explica bem devagar e gritando.", "Pede para alguém explicar por ele.", "Coitado, não vai entender mesmo."], tag: "capacitismo", why: "A própria pessoa sabe a melhor forma de se comunicar. Perguntar é o primeiro passo da inclusão." },
+    { from: "Você nem parece gay.", to: "Que bom te conhecer melhor!", wrong: ["Você é gay, mas é discreto, né?", "Nem dá para perceber que você é gay.", "Você é o gay mais normal que eu conheço."], tag: "lgbt", why: "Esse \"elogio\" parte da ideia de que ser gay é algo a esconder. Não existe jeito certo de parecer." },
+    { from: "Fala direito, você não está mais no Nordeste!", to: "Adoro ouvir sotaques diferentes, cada região tem o seu jeito.", wrong: ["Tenta disfarçar esse sotaque na apresentação.", "Seu sotaque é engraçado, fala de novo!", "Aqui a gente fala o português certo."], tag: "xenofobia", why: "Não existe sotaque errado. Corrigir ou ridicularizar o jeito de falar é exposição desnecessária." }
+  ];
+
+  SWAPS.push(
+    { from: "Ela apanhou, mas alguma coisa deve ter feito.", to: "Nada justifica a violência contra a mulher.", wrong: ["Briga de casal, ninguém mete a colher.", "Ela deveria ter ficado quieta.", "Se ela continua com ele, é porque gosta."], tag: "misoginia", why: "Culpar a vítima naturaliza a violência. Em briga de casal se mete a colher, sim: Ligue 180." },
+    { from: "Mulher que posta foto assim está pedindo.", to: "A roupa ou a foto de alguém nunca é convite para assédio.", wrong: ["Ela deveria se dar ao respeito.", "Depois não reclama se mexerem com ela.", "Quem se expõe tem que aguentar."], tag: "misoginia", why: "Culpar a mulher pelo assédio que sofre é desprezo à sua liberdade. A responsabilidade é sempre de quem assedia." },
+    { from: "Isso aí é macumba, coisa do mal.", to: "Cada religião tem seus rituais, e todos merecem respeito.", wrong: ["Religião de matriz africana não é religião de verdade.", "Melhor nem chegar perto disso.", "Pode praticar, mas bem longe daqui."], tag: "religiosa", why: "Chamar religiões de matriz africana de \"coisa do mal\" é racismo religioso. Respeito vale para todas as crenças." },
+    { from: "Quem não tem religião não tem valores.", to: "Valores não dependem de ter ou não ter religião.", wrong: ["Ateu é gente sem fé em nada.", "Pelo menos ele deveria acreditar em algo.", "Sem religião, a pessoa fica perdida."], tag: "religiosa", why: "A liberdade de crença inclui o direito de não ter religião. Caráter não depende de fé." },
+    { from: "Ele é negro, mas é bonito.", to: "Ele é bonito.", wrong: ["Ele é moreninho e bonito.", "Ele é bonito para um negro.", "Ele é negro de traços finos."], tag: "racismo", why: "O \"mas\" trata ser negro como defeito. Beleza não tem cor." },
+    { from: "Qual dos dois é o homem da relação?", to: "Como vocês se conheceram?", wrong: ["Mas quem faz o papel de mulher?", "Um de vocês tem que ser o homem, né?", "Vocês nem parecem um casal."], tag: "lgbt", why: "Casais LGBTQIAPN+ não seguem papéis de \"homem\" e \"mulher\". A pergunta reduz o relacionamento a um estereótipo." },
+    { from: "Você tem certeza que vai comer tudo isso?", to: "Bom almoço!", wrong: ["Depois não reclama do peso.", "Não seria melhor uma salada?", "Cuidado, que isso engorda."], tag: "gordofobia", why: "Fiscalizar o prato de alguém é julgar o corpo da pessoa. Ninguém precisa de plateia para comer." },
+    { from: "Você é muito novo para entender isso.", to: "Qual é a sua opinião sobre isso?", wrong: ["Quando crescer você vai entender.", "Isso é assunto de adulto.", "Espera ter mais experiência para opinar."], tag: "etarismo", why: "Idade não mede a capacidade de pensar. Ouvir os mais jovens também é respeito." },
+    { from: "Você é autista? Nem parece!", to: "Obrigado por compartilhar. Posso fazer algo para facilitar?", wrong: ["Mas você é bem normal.", "Todo mundo é um pouco autista.", "Então você nem precisa de ajuda."], tag: "capacitismo", why: "O autismo não tem uma \"cara\". Dizer que a pessoa \"nem parece\" invalida a experiência dela." },
+    { from: "Lugar de mulher é na cozinha.", to: "Lugar de mulher é onde ela quiser.", wrong: ["Mulher pode trabalhar, mas a casa é dela.", "Mulher até trabalha fora, mas cozinhar é com ela.", "Homem não tem jeito para cozinha."], tag: "machismo", why: "Tarefas da casa são de quem mora nela. Limitar o lugar da mulher reforça a desigualdade." }
+  );
+
+  const REG = [
+    { id: "regimento", label: "Regimento Escolar", icon: "📘", image: "img/image_5fdfd8.jpg",
+      q: "Para que serve o Regimento das Unidades Educacionais?",
+      opts: ["Regula direitos e deveres e organiza a convivência para garantir respeito e aprendizagem", "É um guia opcional que só os docentes precisam conhecer", "Lista apenas as punições para quem faltar às aulas", "Vale só para os cursos técnicos, não para a aprendizagem"],
+      desc: "Documento oficial que regula direitos e deveres. Normatiza a convivência e a organização escolar para garantir um ambiente de respeito e aprendizagem.",
+      legal: "Art. 1º (Normas e organização). Art. 25 e 26 (Direitos e Deveres). Baseado na LDB e na Proposta Pedagógica do Senac.",
+      talk: "Qual direito do Regimento faz mais diferença no seu dia a dia aqui na Unidade?" },
+    { id: "diversidade", label: "Diversidade", icon: "🏳️‍🌈", image: "img/bandeira_lgbt.jpg", tag: "lgbt",
+      q: "No intervalo, um colega faz piada sobre a orientação sexual de alguém da turma. Pelo Regimento, isso é:",
+      opts: ["Discriminação, e o Regimento proíbe praticar, induzir ou incitar discriminação", "Só uma brincadeira, cada um tem direito à sua opinião", "Problema apenas se a pessoa fizer uma reclamação por escrito", "Permitido, desde que aconteça fora da sala de aula"],
+      desc: "O Senac é plural. Respeitar a identidade de gênero e a orientação sexual de cada pessoa não é opinião: é regra da escola e é lei.",
+      legal: "Art. 25, II: \"Ser respeitado em suas características pessoais... orientação sexual...\". Art. 26, III: \"Não praticar, induzir ou incitar discriminação\".",
+      talk: "Como a turma pode agir quando presencia uma \"piada\" desse tipo?" },
+    { id: "substancias", label: "Saúde e Consciência", icon: "🚭", image: "img/proibido_substancias.jpg",
+      q: "Um estudante bebeu antes da aula, mas não trouxe nada consigo. Ele pode permanecer na Unidade?",
+      opts: ["Não. O Regimento também proíbe permanecer na Unidade em estado alterado de consciência", "Pode, porque não está portando nenhuma substância", "Pode, se ficar em silêncio no fundo da sala", "Pode, a regra só vale em dia de avaliação"],
+      desc: "Escola é lugar de consciência limpa. É proibido portar, usar ou estar sob efeito de álcool ou drogas no ambiente escolar.",
+      legal: "Art. 26, IV: \"Não portar/consumir substâncias psicoativas\". Art. 26, V: \"Não permanecer... em estado alterado de consciência\".",
+      talk: "Por que a regra fala em \"estar sob efeito\" e não só em \"portar\"?" },
+    { id: "armas", label: "Cultura de Paz", icon: "🕊️", image: "img/paz_sem_armas.jpg",
+      q: "Um grupo quer usar uma arma de brinquedo bem realista como adereço numa apresentação. E aí?",
+      opts: ["Não pode: armas e simulacros não entram na Unidade", "Pode, se for de plástico", "Pode, desde que fique guardada na mochila", "Pode, se a turma inteira concordar"],
+      desc: "Segurança total. Portar facas, armas ou simulacros (brinquedos) é infração grave. Conflitos se resolvem com diálogo.",
+      legal: "Art. 26, VI: \"Não transportar ou trazer armas aos ambientes da Unidade Educacional, salvo exceções previstas em lei\".",
+      talk: "Que outro adereço o grupo poderia usar para a cena funcionar?" },
+    { id: "religiao", label: "Liberdade de Crença", icon: "🙏", image: "img/diversidade_religiosa.jpg", tag: "religiosa",
+      q: "Num trabalho em grupo, alguém zomba da religião de um colega. O que diz o Regimento?",
+      opts: ["Todos devem ser respeitados em suas convicções religiosas; intolerância é discriminação", "Como o ambiente é laico, crenças não são protegidas aqui", "Só é problema se a religião for de uma minoria", "Assunto de religião é proibido dentro do Senac"],
+      desc: "Sua fé é respeitada, e a do outro também. O ambiente é laico, e a intolerância religiosa fere a dignidade e é proibida. Quando atinge religiões de matriz africana com estereótipos, também é chamada de racismo religioso.",
+      legal: "Art. 25, II: Respeito às \"convicções filosóficas, ideológicas, políticas ou religiosas\". Art. 26, III: Vedada a discriminação por convicções.",
+      talk: "Laico quer dizer \"sem religião\" ou \"respeito a todas\"? Qual a diferença?" },
+    { id: "namoro", label: "Afeto e Postura", icon: "❤️", image: "img/coracao_respeito.jpg",
+      q: "Namorar no Senac: pode ou não pode?",
+      opts: ["Pode namorar, mas atos íntimos ou sexuais são proibidos nas dependências, mesmo consentidos", "Não pode de jeito nenhum", "Pode tudo, se as duas pessoas concordarem", "Pode, mas só no horário do intervalo"],
+      desc: "Namoro pode? Pode. Mas atos íntimos ou sexuais, mesmo que consentidos, são proibidos dentro do Senac.",
+      legal: "Art. 26, VIII: \"Não praticar atos libidinosos e sexuais, ainda que consentidos, nas dependências do Senac\".",
+      talk: "Por que o consentimento não basta quando o espaço é coletivo?" },
+    { id: "inclusao", label: "Inclusão Total", icon: "🌻", image: "img/disc/cordoes.jpg", contain: true, tag: "capacitismo",
+      q: "Um estudante com deficiência visual precisa de material adaptado. Segundo o Regimento:",
+      opts: ["O Senac deve viabilizar a adaptação de estratégias e oferecer recursos, como tecnologias assistivas", "Ele deve providenciar o material adaptado por conta própria", "Ele acompanha a aula sem adaptação, igual a todo mundo", "A adaptação só acontece se a turma inteira votar a favor"],
+      desc: "Acessibilidade é direito. O Senac adapta estratégias e recursos para garantir que estudantes com deficiência tenham oportunidades iguais.",
+      extra: "Cordões de identificação: o cordão de girassol identifica pessoas com deficiências ocultas; o cordão de quebra-cabeça colorido identifica pessoas autistas. Ao ver um deles, ofereça ajuda e pergunte como ajudar.",
+      legal: "Art. 54, §4º: \"Viabilizar a adaptação de estratégias e a oferta de recursos (tecnologias assistivas) para a superação de barreiras\".",
+      talk: "Você já tinha visto esses cordões? O que muda quando a gente sabe o que eles significam?" },
+    { id: "material", label: "Patrimônio Coletivo", icon: "✏️", image: "img/material_escolar.jpg",
+      q: "Um estudante quebra uma cadeira \"só de brincadeira\". O que acontece?",
+      opts: ["Ele responde pelo dano e pode ter de reparar o prejuízo", "Nada, a escola tem verba para isso", "A turma toda divide o conserto", "Só é problema se for equipamento de informática"],
+      desc: "Cuidar do que é nosso. Danificar equipamentos ou mobiliário prejudica a todos e gera o dever de indenizar o prejuízo.",
+      legal: "Art. 26, X: \"Preservar o patrimônio da instituição... respondendo por qualquer dano ou prejuízo que venha a causar\".",
+      talk: "Quem perde quando um equipamento da sala fica quebrado?" },
+    { id: "comida", label: "Alimentação", icon: "🥪", image: "img/lanche_saudavel.jpg",
+      q: "Dá para fazer um lanche rápido no laboratório de informática?",
+      opts: ["Não. Alimentação tem lugar certo; comer no laboratório danifica equipamentos e atrai pragas", "Pode, se ninguém estiver vendo", "Pode, desde que seja um lanche saudável", "Pode, se limpar a mesa depois"],
+      desc: "Alimentação tem lugar certo. Comer em laboratórios danifica equipamentos e atrai pragas. Respeite os espaços de convivência.",
+      legal: "Art. 20: A utilização dos ambientes deve observar as normas. Art. 26, XI: Respeitar normas de convivência e segurança.",
+      talk: "Onde ficam os espaços certos para lanchar aqui na Unidade?" },
+    { id: "avaliacao", label: "Avaliação e Feedback", icon: "⚽", image: "img/apito_futebol.jpg",
+      q: "Você não entendeu como está sendo avaliado. Qual é o seu direito?",
+      opts: ["Ser informado sobre os critérios e receber devolutivas contínuas sobre o processo", "Nenhum: critério de avaliação é decisão só do docente", "Saber o resultado apenas no fim do curso", "Ver a avaliação somente se o resultado for ruim"],
+      desc: "Como num jogo, você precisa conhecer as regras. Você tem direito a saber como é avaliado e a receber feedback constante do docente.",
+      legal: "Art. 25, V: \"Ser informado sobre critérios\". Art. 25, VI: \"Receber continuamente devolutivas sobre processo avaliativo e resultados\".",
+      talk: "Que tipo de devolutiva mais ajuda você a melhorar?" },
+    { id: "celular", label: "Tecnologia Consciente", icon: "📱", image: "img/celular_sala.jpg",
+      q: "Qual atitude respeita a regra de uso da tecnologia na Unidade?",
+      opts: ["Usar os recursos alinhado à Segurança da Informação, sem atrapalhar a aula", "Instalar qualquer programa nos computadores da escola", "Compartilhar a senha da rede com quem pedir", "Usar o celular livremente durante a explicação"],
+      desc: "Tecnologia a favor do ensino. O uso deve respeitar a segurança da informação e não atrapalhar o fluxo da aula.",
+      legal: "Art. 26, IX: \"Utilizar ambientes e recursos tecnológicos... em estrito alinhamento com a Política de Segurança da Informação\".",
+      talk: "Em que momento da aula o celular ajuda, e em que momento atrapalha?" },
+    { id: "lapis", label: "Identidade e Cor", icon: "🎨", image: "img/lapis_tons_pele.jpg", tag: "racismo",
+      q: "Alguém pede o \"lápis cor de pele\" e recebe o rosa-claro. Qual é a reflexão?",
+      opts: ["Não existe uma única cor de pele; reconhecer a diversidade racial é parte do respeito", "É só um nome, não faz diferença", "Esse assunto é só da aula de artes", "Todo mundo entende, então não precisa mudar"],
+      desc: "Reconhecer a diversidade racial é fundamental. Não existe \"cor de pele\" padrão. O respeito à raça e à cor é pilar da convivência.",
+      legal: "Art. 26, III: Respeitar todos sem discriminação em razão de \"raça, cor...\". Art. 25, II: Ser respeitado em suas características.",
+      talk: "Que outras expressões do dia a dia carregam um padrão escondido?" },
+    { id: "atestado", label: "Frequência e Saúde", icon: "🏥", image: "img/atestado_medico.jpg",
+      q: "Você ficou doente e trouxe atestado. O que é verdade?",
+      opts: ["O atestado não apaga a falta, mas garante amparo legal nos casos previstos; o mínimo é 75% de presença", "Com atestado, a falta desaparece do sistema", "Com atestado, dá para faltar quantas vezes precisar", "A frequência mínima exigida é de 50%"],
+      desc: "Faltou? Atestado não abona falta, mas justifica (Amparo Legal) em casos específicos, como doença, gestação, luto e serviço militar. Mínimo de 75% de presença.",
+      legal: "Art. 55 (Frequência mínima de 75%). Art. 56: Lista taxativa para Amparo Legal (Doença, Gestante, Militar etc.). Art. 58: Faltas pessoais contam nos 25%.",
+      talk: "Se você pode faltar 25%, por que vale guardar essa margem?" },
+    { id: "voz", label: "Voz Ativa", icon: "📢", image: "img/megafone_dialogo.jpg",
+      q: "A turma quer propor uma melhoria para a Unidade. Qual caminho o Regimento garante?",
+      opts: ["Propor melhorias, votar e ser votado para representante e levar pautas ao Conselho Escolar", "Só a coordenação pode sugerir mudanças", "Esperar a pesquisa de satisfação do fim do ano", "Reclamar nas redes sociais é o único jeito"],
+      desc: "Participe! Você pode propor melhorias, votar para representante de turma e levar pautas ao Conselho Escolar.",
+      legal: "Art. 25, VIII: \"Votar e ser votado\". Art. 25, IX: \"Propor melhorias\". Art. 27: Atribuições da Representação Estudantil.",
+      talk: "Se você fosse representante, qual seria sua primeira pauta?" },
+    { id: "limpeza", label: "Cuidado e Zeladoria", icon: "🧹", image: "img/limpeza_zeladoria.jpg",
+      q: "Depois do intervalo, a mesa ficou cheia de embalagens. De quem é a responsabilidade?",
+      opts: ["De todos: cuidar do próprio lixo e dos espaços coletivos é norma de convivência", "Só da equipe de limpeza, é o trabalho dela", "De quem sentar ali depois", "Do docente da próxima aula"],
+      desc: "Ambiente limpo é responsabilidade de todos. Valorize o trabalho da equipe de limpeza cuidando do seu lixo e dos banheiros.",
+      legal: "Art. 26, XI: Respeitar normas de convivência. Princípio de cidadania e conservação do espaço coletivo.",
+      talk: "Que pequeno hábito da turma deixaria a sala melhor amanhã?" },
+    { id: "boneca", label: "Representatividade", icon: "🧸", image: "img/boneca_pano.jpg", tag: "racismo",
+      q: "Por que bonecas, livros e referências negras nos espaços educativos importam?",
+      opts: ["Fortalecem a autoestima, combatem o racismo estrutural e se ligam à Lei 10.639/03", "São apenas decoração", "Só importam para crianças pequenas", "Não têm relação com a escola"],
+      desc: "A representatividade importa. Brinquedos e referências que refletem a diversidade racial fortalecem a autoestima e combatem o racismo estrutural.",
+      legal: "Lei 10.639/03 (Ensino da História e Cultura Afro-Brasileira). Art. 26, III (Não discriminação racial).",
+      talk: "Que referência negra (pessoa, livro, música) você indicaria para a turma?" }
+  ];
+
+  const REG_EXTRA = {
+    regimento: ["Regras claras, convivência segura.", "Direitos e deveres para todos", "Arts. 1º, 25 e 26"],
+    diversidade: ["Respeito não é opinião.", "Discriminar é proibido", "Art. 25, II e Art. 26, III"],
+    substancias: ["Escola é lugar de consciência limpa.", "Nem portar, nem estar sob efeito", "Art. 26, IV e V"],
+    armas: ["Conflito se resolve com diálogo.", "Armas e simulacros: proibidos", "Art. 26, VI"],
+    religiao: ["Laico é respeitar todas as crenças.", "Toda crença é respeitada", "Art. 25, II e Art. 26, III"],
+    namoro: ["Afeto sim, intimidade não.", "Atos íntimos são proibidos", "Art. 26, VIII"],
+    inclusao: ["Acessibilidade é direito.", "O Senac adapta recursos", "Art. 54, §4º"],
+    material: ["Cuidar do que é de todos.", "Quem causa dano, repara", "Art. 26, X"],
+    comida: ["Cada coisa em seu lugar.", "Laboratório não é refeitório", "Art. 20 e Art. 26, XI"],
+    avaliacao: ["Conhecer as regras do jogo é direito.", "Critérios claros e devolutivas", "Art. 25, V e VI"],
+    celular: ["Tecnologia a favor da aula.", "Uso seguro e consciente", "Art. 26, IX"],
+    lapis: ["Não existe uma única cor de pele.", "Respeito à raça e à cor", "Art. 25, II e Art. 26, III"],
+    atestado: ["Presença é compromisso.", "Mínimo de 75% de presença", "Arts. 55, 56 e 58"],
+    voz: ["Sua voz muda a escola.", "Propor, votar e ser votado", "Art. 25, VIII e IX; Art. 27"],
+    limpeza: ["Ambiente limpo é trabalho de todos.", "Cuide do seu lixo", "Art. 26, XI"],
+    boneca: ["Representatividade importa.", "Combate ao racismo estrutural", "Lei 10.639/03 e Art. 26, III"]
+  };
+  REG.forEach((t) => { const [slogan, regShort, legalShort] = REG_EXTRA[t.id]; Object.assign(t, { slogan, regShort, legalShort }); });
+
+  /* ================= ESTADO ================= */
+  const S = {
+    teams: [], turn: 0, totalRounds: 12, round: 0, time: 25, mode: "mista",
+    pool: [], current: null, C: null, firstSpin: true, spinning: false, rot: 0, sound: true, phase: "setup",
+    correctPos: 0, tried: new Set(), stage: "main", timerId: null, left: 0, result: null, prev: null,
+    usedEx: {}, usedSwap: new Set()
+  };
+  const $ = (s, r = document) => r.querySelector(s);
+  const root = $("#screen-root");
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const shuffle = (a) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+
+  /* ================= SOM ================= */
+  let ac = null;
+  function audio() { if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (ac && ac.state === "suspended") ac.resume(); return ac; }
+  function tone(freq, dur = 0.12, type = "square", vol = 0.08, when = 0) {
+    if (!S.sound) return; const a = audio(); if (!a) return;
+    const t = a.currentTime + when, o = a.createOscillator(), g = a.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
+  }
+  const sfx = {
+    tick: () => tone(1400, 0.03, "square", 0.04),
+    beep: () => tone(880, 0.08, "sine", 0.08),
+    urgent: () => tone(1320, 0.1, "square", 0.06),
+    good: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.22, "triangle", 0.12, i * 0.09)),
+    bad: () => { tone(180, 0.35, "sawtooth", 0.09); tone(140, 0.45, "sawtooth", 0.08, 0.12); },
+    reveal: () => { for (let i = 0; i < 14; i++) tone(120 + i * 18, 0.06, "triangle", 0.05, i * 0.05); tone(784, 0.4, "triangle", 0.1, 0.75); },
+    swap: () => [392, 523, 392, 659].forEach((f, i) => tone(f, 0.16, "sine", 0.09, i * 0.11)),
+    fanfare: () => [523, 523, 784, 659, 784, 1046].forEach((f, i) => tone(f, 0.3, "triangle", 0.12, i * 0.16))
+  };
+
+  /* ================= MONTAGEM DA RODA POR MODO ================= */
+  const MODES = {
+    regimento: { label: "Regimento", desc: "Os 16 temas do Regimento e 2 fatias \"Que tal trocarmos?\"." },
+    discriminacao: { label: "Tipos de Discriminação", desc: "Os 9 tipos de discriminação com exemplos e 5 fatias \"Que tal trocarmos?\"." },
+    mista: { label: "Mista", desc: "7 temas do Regimento, 7 tipos de discriminação e 4 fatias \"Que tal trocarmos?\", sorteados a cada partida." }
+  };
+  const regSlice = (t) => ({ kind: "reg", id: t.id, label: t.label, icon: t.icon, ref: t });
+  const discSlice = (d) => ({ kind: "disc", id: "d-" + d.id, label: d.label, icon: d.icon, ref: d });
+  const swapSlice = (n) => ({ kind: "trocar", id: "t-" + n, label: "Que tal trocarmos?", icon: "🔁" });
+  function buildPool(mode) {
+    let items;
+    if (mode === "regimento") items = [...REG.map(regSlice), swapSlice(1), swapSlice(2)];
+    else if (mode === "discriminacao") items = [...DISC.map(discSlice), ...[1, 2, 3, 4, 5].map(swapSlice)];
+    else {
+      const regs = [REG[0], ...shuffle(REG.slice(1)).slice(0, 6)];
+      items = [...regs.map(regSlice), ...shuffle(DISC).slice(0, 7).map(discSlice), ...[1, 2, 3, 4].map(swapSlice)];
+    }
+    // intercala os tipos de fatia para a roda ficar variada
+    const q = { reg: shuffle(items.filter((i) => i.kind === "reg")), disc: shuffle(items.filter((i) => i.kind === "disc")), trocar: items.filter((i) => i.kind === "trocar") };
+    // espalha as fatias "Que tal trocarmos?" igualmente pela roda
+    const out = [], total = items.length, nT = q.trocar.length;
+    const slots = new Set(Array.from({ length: nT }, (_, i) => Math.floor((i + 0.5) * total / nT)));
+    let turn = 0;
+    for (let pos = 0; pos < total; pos++) {
+      if (slots.has(pos) && q.trocar.length) { out.push(q.trocar.shift()); continue; }
+      const order = turn++ % 2 === 0 ? ["reg", "disc"] : ["disc", "reg"];
+      const k = order.find((x) => q[x].length) || "trocar"; out.push(q[k].shift());
+    }
+    return out;
+  }
+
+  /* ================= ROLETA ================= */
+  const cv = $("#wheel"), ctx = cv.getContext("2d");
+  let size = 600;
+  function fitCanvas() {
+    const r = cv.getBoundingClientRect(); const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    size = Math.max(200, r.width); cv.width = size * dpr; cv.height = size * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); drawWheel();
+  }
+  function sliceColor(i) {
+    const it = S.pool[i];
+    if (it.kind === "trocar") return "#13827c";
+    const same = S.pool.slice(0, i).filter((p) => p.kind === it.kind).length % 2;
+    return it.kind === "reg" ? (same ? "#f6921e" : "#004a8d") : (same ? "#8e44c9" : "#6b2fa3");
+  }
+  function drawWheel() {
+    const items = S.pool, n = items.length, c = size / 2, R = c - 8;
+    ctx.clearRect(0, 0, size, size);
+    ctx.save(); ctx.translate(c, c);
+    ctx.beginPath(); ctx.arc(0, 0, R + 4, 0, Math.PI * 2); ctx.fillStyle = "#0c2549"; ctx.fill();
+    if (n === 0) {
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fillStyle = "#10305c"; ctx.fill();
+      ctx.fillStyle = "#ffcf4d"; ctx.textAlign = "center"; ctx.font = `800 ${size * 0.06}px "Bricolage Grotesque", sans-serif`;
+      ctx.fillText("JORNADA", 0, -size * 0.01); ctx.fillText("CONCLUÍDA!", 0, size * 0.06); ctx.restore(); return;
+    }
+    ctx.rotate(S.rot * Math.PI / 180);
+    const arc = Math.PI * 2 / n;
+    const fs = Math.max(9, Math.min(size * 0.032, size * 0.5 / n));
+    for (let i = 0; i < n; i++) {
+      const a0 = i * arc - Math.PI / 2;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, R, a0, a0 + arc); ctx.closePath();
+      ctx.fillStyle = sliceColor(i); ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = 2; ctx.stroke();
+      ctx.save(); ctx.rotate(a0 + arc / 2);
+      ctx.beginPath(); ctx.arc(R - size * 0.05, 0, size * 0.034, 0, Math.PI * 2); ctx.fillStyle = "rgba(255,255,255,0.95)"; ctx.fill();
+      ctx.font = `${size * 0.032}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillStyle = "#000";
+      ctx.save(); ctx.translate(R - size * 0.05, 0); ctx.rotate(Math.PI / 2); ctx.fillText(items[i].icon, 0, 1); ctx.restore();
+      ctx.textAlign = "right"; ctx.fillStyle = "#fff"; ctx.font = `700 ${fs}px "Figtree", sans-serif`;
+      ctx.shadowColor = "rgba(0,0,0,0.45)"; ctx.shadowBlur = 4;
+      let t = items[i].label; if (t.length > 20) t = t.slice(0, 18) + "…";
+      ctx.fillText(t, R - size * 0.095, 1);
+      ctx.restore();
+    }
+    for (let i = 0; i < n; i++) { const a = i * arc - Math.PI / 2; ctx.beginPath(); ctx.arc(Math.cos(a) * (R - 3), Math.sin(a) * (R - 3), size * 0.009, 0, Math.PI * 2); ctx.fillStyle = "#ffcf4d"; ctx.fill(); }
+    ctx.restore();
+    ctx.save(); ctx.translate(c, c);
+    ctx.beginPath(); ctx.arc(0, 0, size * 0.11, 0, Math.PI * 2); ctx.fillStyle = "#fff"; ctx.shadowColor = "rgba(0,0,0,0.35)"; ctx.shadowBlur = 16; ctx.fill();
+    ctx.shadowBlur = 0; ctx.beginPath(); ctx.arc(0, 0, size * 0.095, 0, Math.PI * 2); ctx.strokeStyle = "#f6921e"; ctx.lineWidth = size * 0.008; ctx.stroke();
+    ctx.fillStyle = "#004a8d"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = `800 ${size * 0.045}px "Bricolage Grotesque", sans-serif`; ctx.fillText("SENAC", 0, -size * 0.008);
+    ctx.font = `700 ${size * 0.018}px "Figtree", sans-serif`; ctx.fillStyle = "#f6921e"; ctx.fillText("ARARAQUARA", 0, size * 0.035);
+    ctx.restore();
+  }
+  const ease = (t) => 1 - Math.pow(1 - t, 4);
+  function topIndex(rot, n) { const a = ((360 - (rot % 360)) % 360 + 360) % 360; return Math.floor(a / (360 / n)) % n; }
+  function spin() {
+    if (S.spinning || S.phase !== "stage" || !S.pool.length) return;
+    audio(); S.spinning = true; $("#spin").disabled = true;
+    const n = S.pool.length, arc = 360 / n;
+    const regIdx = S.pool.findIndex((t) => t.id === "regimento");
+    const win = (S.firstSpin && regIdx >= 0) ? regIdx : Math.floor(Math.random() * n);
+    const center = win * arc + arc / 2 + (Math.random() - 0.5) * arc * 0.6;
+    const start = S.rot; const base = start - (start % 360);
+    const target = base + (6 + Math.floor(Math.random() * 3)) * 360 + ((360 - center) % 360);
+    const dur = 4800, t0 = performance.now(); let last = topIndex(start, n); const ptr = $("#pointer");
+    if (G) { G.fromTo("#spin", { scale: 1 }, { scale: 0.92, duration: 0.12, yoyo: true, repeat: 1 }); G.to("#rays", { opacity: 1, duration: 0.4 }); G.to("#rays", { rotation: "+=360", duration: 2.2, repeat: -1, ease: "none", id: "raysSpin" }); }
+    (function frame(now) {
+      const p = Math.min(1, (now - t0) / dur);
+      S.rot = start + (target - start) * ease(p); drawWheel();
+      const idx = topIndex(S.rot, n);
+      if (idx !== last) { last = idx; sfx.tick(); ptr.classList.remove("kick"); void ptr.offsetWidth; ptr.classList.add("kick"); }
+      spinFx(Math.pow(1 - p, 2.2));
+      if (p < 1) requestAnimationFrame(frame);
+      else {
+        S.spinning = false; S.rot = S.rot % 360; const chosen = S.pool[topIndex(S.rot, n)]; S.firstSpin = false;
+        spinFx(0); landFx(chosen);
+        setTimeout(() => openSuspense(chosen), G ? 1700 : 400);
+      }
+    })(t0);
+  }
+
+  // Giro "Rede viva": a rede 3D acelera e brilha com a velocidade da roda
+  const KIND_HEX = { reg: 0xf6921e, disc: 0xc86bff, trocar: 0x3fd0c9 };
+  const KIND_CSS = { reg: "#f6921e", disc: "#c86bff", trocar: "#3fd0c9" };
+  const KIND_NAME = { reg: "Regimento", disc: "Tipo de discriminação", trocar: "Rodada especial" };
+  function spinFx(v) {
+    if (vanta) vanta.setOptions({ maxDistance: 20 + 13 * v });
+    const bg = $("#stage-bg"); bg.style.filter = `brightness(${0.6 + 0.85 * v}) saturate(${1 + v})`;
+    if (G) G.set(bg, { scale: 1 + 0.12 * v });
+    $("#wglow").style.boxShadow = v > 0.01 ? `0 0 ${20 + 90 * v}px ${12 * v}px rgba(255,207,77,${0.12 + 0.5 * v})` : "";
+  }
+  function landFx(slice) {
+    const c = KIND_CSS[slice.kind];
+    if (vanta) vanta.setOptions({ color: KIND_HEX[slice.kind] });
+    if (!G) return;
+    G.getById("raysSpin")?.kill(); G.to("#rays", { opacity: 0, duration: 0.6 });
+    G.fromTo("#flash", { opacity: 0.7 }, { opacity: 0, duration: 0.55, ease: "power2.out" });
+    for (let i = 0; i < 2; i++) { const r = document.createElement("div"); r.className = "ring"; r.style.setProperty("--c", c); $("#rings").appendChild(r); G.fromTo(r, { width: 10, height: 10, opacity: 0.9 }, { width: "150%", height: "150%", opacity: 0, duration: 1.3, delay: i * 0.2, ease: "power2.out", onComplete: () => r.remove() }); }
+    tone(110, 0.5, "sawtooth", 0.08);
+    const lp = $("#landpop"); lp.style.setProperty("--c", c); $("#lp-kind").textContent = KIND_NAME[slice.kind];
+    G.set(lp, { autoAlpha: 1 }); G.fromTo(lp, { scale: 0.3 }, { scale: 1, duration: 0.6, ease: "back.out(2)" });
+    if (HAS_SCRAMBLE) G.fromTo("#lp-label", { scrambleText: { text: " " } }, { duration: 0.9, scrambleText: { text: `${slice.icon} ${slice.label}`, chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", speed: 0.6 } });
+    else $("#lp-label").textContent = `${slice.icon} ${slice.label}`;
+    G.to(lp, { autoAlpha: 0, duration: 0.3, delay: 1.45 });
+  }
+
+  /* ================= PLACAR ================= */
+  function renderBoard(prevScores = null) {
+    $("#board").innerHTML = S.teams.map((t, i) => `
+      <div class="team ${i === S.turn && S.teams.length > 1 ? "active" : ""}">
+        <span class="dot" style="background:${t.color}"></span><span class="name">${esc(t.name)}</span>
+        <span class="score" data-i="${i}">${prevScores ? prevScores[i] : t.score}</span></div>`).join("");
+    if (prevScores) S.teams.forEach((t, i) => {
+      const el = $(`.score[data-i="${i}"]`); if (prevScores[i] === t.score) return;
+      if (G) { const o = { v: prevScores[i] }; G.to(o, { v: t.score, duration: 1.2, ease: "power2.out", delay: 0.3, onUpdate: () => (el.textContent = Math.round(o.v)) }); G.fromTo(el, { scale: 1 }, { scale: 1.4, duration: 0.35, yoyo: true, repeat: 1, delay: 0.3 }); }
+      else el.textContent = t.score;
+    });
+    const shown = Math.min(S.round + (S.phase === "stage" ? 1 : 0), S.totalRounds);
+    $("#round-count").textContent = `Rodada ${shown} de ${S.totalRounds}`;
+    $("#progress").style.width = (S.totalRounds ? S.round / S.totalRounds * 100 : 0) + "%";
+    const t = S.teams[S.turn];
+    $("#turn-title").innerHTML = t ? (S.teams.length > 1 ? `Vez da <span style="color:${t.color}">${esc(t.name)}</span>` : "A turma gira!") : "Quem gira?";
+    $("#phase-label").textContent = S.firstSpin && S.pool.some((p) => p.id === "regimento") ? "Primeira rodada: o Regimento abre o jogo" : "Gire e descubra o próximo tema";
+    $("#mode-pill").textContent = "Roda: " + MODES[S.mode].label;
+    const kinds = new Set(S.pool.map((p) => p.kind));
+    $("#legend").innerHTML = [["reg", "#f6921e", "Regimento"], ["disc", "#8e44c9", "Tipo de discriminação"], ["trocar", "#13827c", "Que tal trocarmos?"]]
+      .filter(([k]) => kinds.has(k)).map(([, c, l]) => `<span><i style="background:${c}"></i>${l}</span>`).join("");
+    $("#spin").disabled = S.phase !== "stage" || S.spinning;
+  }
+
+  /* ================= TELAS ================= */
+  let vanta = null;
+  const VANTA_BASE = 0xf6921e;
+  function initVanta() {
+    if (vanta || REDUCED || !window.VANTA || !window.THREE) return;
+    try { vanta = VANTA.NET({ el: "#stage-bg", mouseControls: true, touchControls: true, gyroControls: false, minHeight: 200, minWidth: 200, scale: 1, scaleMobile: 1, color: VANTA_BASE, backgroundColor: 0x06162e, points: 10, maxDistance: 20, spacing: 18, showDots: true }); } catch (e) { vanta = null; }
+  }
+  function show(html, clear = false) {
+    root.innerHTML = `<div class="screen ${clear ? "clear" : ""}" role="dialog" aria-modal="true">${html}</div>`;
+    root.querySelectorAll("img").forEach((im) => { im.onerror = () => { im.onerror = null; im.src = SUNFLOWER; }; });
+    const scr = root.firstElementChild; scr.tabIndex = -1; const f = root.querySelector(".cta") || scr; f.focus({ preventScroll: true });
+    return scr;
+  }
+  function closeScreen() { root.innerHTML = ""; }
+
+  // ----- Configuração -----
+  const cfg = { teams: 3, rounds: 12, time: 25, mode: "mista", names: ["Equipe Laranja", "Equipe Turquesa", "Equipe Rosa", "Equipe Lilás"] };
+  const poolSize = (m) => m === "regimento" ? 18 : m === "discriminacao" ? 14 : 18;
+  function openSetup(first) {
+    S.phase = "setup"; clearTimer();
+    const max = poolSize(cfg.mode); if (cfg.rounds > max) cfg.rounds = max;
+    const chip = (group, val, cur, label) => `<button class="chip" data-g="${group}" data-v="${val}" aria-pressed="${val === cur}">${label}</button>`;
+    const scr = show(`<div class="inner setup">
+      <div>
+        <p class="eyebrow">Game show da convivência</p>
+        <h2 id="setup-title">Gire, decida e <em>defenda</em> sua resposta.</h2>
+        <p class="lead">A roda sorteia um tema. A equipe da vez escolhe a alternativa levantando a plaquinha da cor certa. Errou? As outras equipes podem roubar no repasse.</p>
+      </div>
+      <div class="field"><span class="label">Qual roda?</span>
+        <div class="modes">${Object.entries(MODES).map(([k, m]) => `<button class="mode" data-g="mode" data-v="${k}" aria-pressed="${k === cfg.mode}"><b>${m.label}</b><span>${m.desc}</span></button>`).join("")}</div>
+      </div>
+      <div class="field"><span class="label">Equipes</span>
+        <div class="chips">${chip("teams", 1, cfg.teams, "Turma toda")}${chip("teams", 2, cfg.teams, "2 equipes")}${chip("teams", 3, cfg.teams, "3 equipes")}${chip("teams", 4, cfg.teams, "4 equipes")}</div>
+        <div class="names">${Array.from({ length: cfg.teams }, (_, i) => `<input id="team-${i}" aria-label="Nome da equipe ${i + 1}" maxlength="22" value="${esc(cfg.teams === 1 ? "Turma" : cfg.names[i])}" style="border-color:${TEAM_COLORS[i]}">`).join("")}</div>
+      </div>
+      <div class="field"><span class="label">Rodadas</span>
+        <div class="chips">${chip("rounds", 6, cfg.rounds, "6 · rápida")}${chip("rounds", 10, cfg.rounds, "10")}${max > 12 ? chip("rounds", 12, cfg.rounds, "12") : ""}${chip("rounds", max, cfg.rounds, max + " · roda inteira")}</div>
+      </div>
+      <div class="field"><span class="label">Tempo para responder</span>
+        <div class="chips">${chip("time", 15, cfg.time, "15 s")}${chip("time", 25, cfg.time, "25 s")}${chip("time", 40, cfg.time, "40 s")}</div>
+      </div>
+      <div class="plates">Plaquinhas de resposta: ${PLATES.map((p, i) => `<span class="plate"><i style="background:${p.color}"></i>${String.fromCharCode(65 + i)} ${p.name}</span>`).join("")}</div>
+      <button class="cta" id="start">Começar o jogo</button>
+    </div>`, true);
+    scr.querySelectorAll("[data-g]").forEach((b) => b.addEventListener("click", () => {
+      saveNames(); cfg[b.dataset.g] = b.dataset.g === "mode" ? b.dataset.v : Number(b.dataset.v); openSetup(false);
+    }));
+    $("#start").addEventListener("click", () => { saveNames(); startGame(); });
+    initVanta();
+    if (G && first) {
+      const tl = G.timeline({ defaults: { ease: "power3.out" } });
+      if (HAS_SPLIT) { const sp = SplitText.create("#setup-title", { type: "words", mask: "words" }); tl.from(sp.words, { yPercent: 110, duration: 0.8, stagger: 0.06, ease: "expo.out" }); }
+      tl.from(".setup .lead, .setup .field, .setup .plates, .setup .cta", { y: 24, autoAlpha: 0, duration: 0.5, stagger: 0.07 }, "-=0.3");
+    }
+  }
+  function saveNames() { if (cfg.teams === 1) return; for (let i = 0; i < cfg.teams; i++) { const el = $("#team-" + i); if (el && el.value.trim()) cfg.names[i] = el.value.trim(); } }
+  function startGame() {
+    audio();
+    const single = (($("#team-0") || {}).value || "Turma").trim() || "Turma";
+    S.teams = Array.from({ length: cfg.teams }, (_, i) => ({ name: cfg.teams === 1 ? single : cfg.names[i], color: TEAM_COLORS[i], score: 0 }));
+    S.mode = cfg.mode; S.pool = buildPool(cfg.mode); S.totalRounds = Math.min(cfg.rounds, S.pool.length); S.time = cfg.time;
+    S.round = 0; S.turn = 0; S.firstSpin = true; S.rot = 0; S.phase = "stage"; S.usedEx = {}; S.usedSwap = new Set(); S.current = null; S.prev = null;
+    closeScreen(); drawWheel(); renderBoard(); $("#spin").focus(); initVanta(); if (vanta) vanta.setOptions({ color: VANTA_BASE });
+    if (G) {
+      G.from(".wheel-wrap", { rotation: -120, scale: 0.6, autoAlpha: 0, duration: 1.1, ease: "back.out(1.4)" });
+      G.from(".team", { x: 40, autoAlpha: 0, duration: 0.5, stagger: 0.1, ease: "power3.out", delay: 0.3 });
+      G.from("#spin", { scale: 0.6, autoAlpha: 0, duration: 0.7, ease: "elastic.out(1, 0.5)", delay: 0.6 });
+    }
+  }
+
+  // ----- Prepara o desafio de cada tipo de fatia -----
+  function nextExample(d) {
+    const used = S.usedEx[d.id] || (S.usedEx[d.id] = new Set());
+    let free = d.ex.map((_, i) => i).filter((i) => !used.has(i)); if (!free.length) { used.clear(); free = d.ex.map((_, i) => i); }
+    const i = pick(free); used.add(i); return d.ex[i];
+  }
+  function buildChallenge(slice) {
+    if (slice.kind === "reg") {
+      const t = slice.ref;
+      return { kind: "reg", label: t.label, icon: t.icon, image: t.image, contain: t.contain, theme: t, prompt: "Levantem a plaquinha da resposta!", q: t.q, long: false,
+        options: t.opts.map((text, i) => ({ text, correct: i === 0 })) };
+    }
+    if (slice.kind === "disc") {
+      const d = slice.ref, avoid = new Set([d.id, ...(d.avoid || [])]);
+      const others = shuffle(DISC.filter((x) => !avoid.has(x.id))).slice(0, 3);
+      return { kind: "disc", label: d.label, icon: d.icon, image: d.image, theme: d, prompt: "Leiam as 4 situações e levantem a plaquinha!", q: `Qual destas situações é um exemplo de <span class="hl">${esc(d.label)}</span>?`, long: true,
+        options: [{ text: nextExample(d), correct: true, type: d }, ...others.map((o) => ({ text: nextExample(o), correct: false, type: o }))] };
+    }
+    let free = SWAPS.map((_, i) => i).filter((i) => !S.usedSwap.has(i)); if (!free.length) { S.usedSwap.clear(); free = SWAPS.map((_, i) => i); }
+    const si = pick(free); S.usedSwap.add(si); const sw = SWAPS[si];
+    return { kind: "trocar", label: "Que tal trocarmos?", icon: "🔁", image: SWAP_ART, swap: sw, prompt: "Que tal trocarmos? Qual frase respeitosa substitui esta?", q: null, long: false,
+      options: [{ text: sw.to, correct: true }, ...sw.wrong.map((w) => ({ text: w, correct: false }))] };
+  }
+  const KIND_BADGE = { reg: `<span class="kind reg">📘 Regimento</span>`, disc: `<span class="kind disc">🧭 Tipo de discriminação</span>`, trocar: `<span class="kind trocar">🔁 Que tal trocarmos?</span>` };
+
+  // ----- Suspense -----
+  function openSuspense(slice) {
+    S.current = slice; S.C = buildChallenge(slice); S.phase = "suspense"; sfx.reveal();
+    const C = S.C, team = S.teams[S.turn];
+    show(`<div class="inner suspense" id="sus">
+      <div class="art ${C.contain ? "contain" : ""}"><img src="${C.image}" alt="${esc(C.label)}"></div>
+      ${KIND_BADGE[C.kind]}
+      <div><p class="eyebrow">${S.teams.length > 1 ? "Tema da " + esc(team.name) : "Tema sorteado"}</p>
+      <h2 id="sus-title">${C.icon} ${esc(C.label)}</h2></div>
+      <p class="tap">Toque para abrir o desafio</p>
+    </div>`, true);
+    $("#sus").addEventListener("click", openChallenge);
+    if (G) {
+      const tl = G.timeline();
+      tl.from(".suspense .art", { scale: 0.3, rotation: -12, autoAlpha: 0, duration: 0.9, ease: "back.out(1.6)" })
+        .from(".suspense .kind", { y: 20, autoAlpha: 0, duration: 0.4 }, "-=0.3");
+      if (HAS_SCRAMBLE) tl.fromTo("#sus-title", { scrambleText: { text: " " } }, { duration: 1.1, scrambleText: { text: `${C.icon} ${C.label}`, chars: "ABCDEFGHIJKLMNOPQRSTUVWXYZ", revealDelay: 0.3, speed: 0.5 } }, "-=0.2");
+      else tl.from("#sus-title", { y: 30, autoAlpha: 0, duration: 0.5 }, "-=0.2");
+    }
+  }
+
+  // ----- Desafio -----
+  function openChallenge() {
+    if (S.phase !== "suspense") return;
+    S.phase = "challenge"; S.stage = "main"; S.tried = new Set(); S.result = null; S.prev = null;
+    const C = S.C; C.order = shuffle(C.options); S.correctPos = C.order.findIndex((o) => o.correct);
+    const team = S.teams[S.turn];
+    const qHtml = C.kind === "trocar"
+      ? `<div style="display:grid;gap:12px"><p class="eyebrow" style="color:#a8f1ec">${esc(C.prompt)}</p><div class="quote" id="quote">"${esc(C.swap.from)}"</div></div>`
+      : `<h2 class="question"><small>${esc(C.prompt)}</small><span id="qtext">${C.kind === "disc" ? C.q : esc(C.q)}</span></h2>`;
+    show(`<div class="inner challenge">
+      <div class="ch-head">
+        <div class="ch-tags">${KIND_BADGE[C.kind]}<span class="tag">${C.icon} ${esc(C.label)}</span>${S.teams.length > 1 ? `<span class="tag turn">Vez da ${esc(team.name)}</span>` : ""}</div>
+        <div class="timer" id="timer"><svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="42"/><circle class="bar" cx="50" cy="50" r="42" stroke-dasharray="263.9" stroke-dashoffset="0"/></svg><b>${S.time}</b></div>
+      </div>
+      ${qHtml}
+      <div id="banner-slot"></div>
+      <div class="options ${C.long ? "long" : ""}" id="options">
+        ${C.order.map((o, pos) => `<button class="opt" data-pos="${pos}" data-c="${pos}" style="--c:${PLATES[pos].color}"><span class="key">${String.fromCharCode(65 + pos)}<small>${PLATES[pos].name}</small></span><span class="txt">${esc(o.text)}</span></button>`).join("")}
+      </div>
+      <div id="steal-slot"></div>
+      <div class="ch-foot"><p class="hint" style="text-align:left">Clique na cor que a equipe levantou · atalhos <kbd>1</kbd>–<kbd>4</kbd></p><button class="ghost" id="skip">Revelar resposta</button></div>
+    </div>`);
+    root.querySelectorAll(".opt").forEach((b) => b.addEventListener("click", () => pickOpt(Number(b.dataset.pos))));
+    $("#skip").addEventListener("click", finishRound);
+    if (G) {
+      const tl = G.timeline({ defaults: { ease: "power3.out" } });
+      tl.from(".ch-head", { y: -20, autoAlpha: 0, duration: 0.4 });
+      if (C.kind === "trocar") tl.from("#quote", { scale: 0.7, rotation: -3, autoAlpha: 0, duration: 0.7, ease: "back.out(1.8)" });
+      else if (HAS_SPLIT) { const sp = SplitText.create("#qtext", { type: "words" }); tl.from(sp.words, { y: 18, autoAlpha: 0, duration: 0.35, stagger: 0.018 }); }
+      tl.from(".opt", { y: 40, autoAlpha: 0, duration: 0.4, stagger: 0.07, ease: "back.out(1.4)" }, "-=0.2");
+      // o cronômetro só começa quando todas as alternativas estão visíveis
+      tl.eventCallback("onComplete", () => { if (S.phase === "challenge" && !S.timerId) startTimer(S.time); });
+    } else startTimer(S.time);
+  }
+  function clearTimer() { if (S.timerId) clearInterval(S.timerId); S.timerId = null; }
+  function startTimer(sec) {
+    clearTimer(); S.left = sec; const total = sec; paintTimer(total);
+    S.timerId = setInterval(() => {
+      S.left--; paintTimer(total);
+      if (S.left <= 5 && S.left > 0) sfx.urgent(); else if (S.left > 0) sfx.beep();
+      if (S.left <= 0) { clearTimer(); timeUp(); }
+    }, 1000);
+  }
+  function paintTimer(total) {
+    const el = $("#timer"); if (!el) return;
+    el.querySelector("b").textContent = Math.max(0, S.left);
+    el.querySelector(".bar").style.strokeDashoffset = 263.9 * (1 - Math.max(0, S.left) / total);
+    el.classList.toggle("low", S.left <= 5);
+  }
+  function timeUp() { sfx.bad(); if (S.stage === "main") goSteal("Tempo esgotado!"); else if (S.stage === "steal") finishRound(); }
+  function pickOpt(pos) {
+    if (S.phase !== "challenge" || S.stage === "confirm" || S.tried.has(pos)) return;
+    const btn = root.querySelector(`.opt[data-pos="${pos}"]`); if (!btn) return;
+    if (pos === S.correctPos) {
+      clearTimer(); btn.classList.add("right"); lockOptions();
+      if (G) G.fromTo(btn, { scale: 1 }, { scale: 1.05, duration: 0.2, yoyo: true, repeat: 1 });
+      if (S.stage === "main") {
+        const pts = 100 + Math.max(0, S.left) * 4;
+        S.prev = S.teams.map((t) => t.score); S.teams[S.turn].score += pts; S.result = { ok: true, pts, who: [S.turn] };
+        sfx.good(); confetti(); floatPts("+" + pts); setTimeout(finishRound, 1300);
+      } else { sfx.good(); askStealers(); }
+    } else {
+      S.tried.add(pos); btn.classList.add("wrong"); btn.disabled = true; sfx.bad();
+      if (G) G.fromTo(btn, { x: -12 }, { x: 0, duration: 0.5, ease: "elastic.out(1, 0.3)" });
+      if (S.stage === "main") goSteal("Resposta errada!");
+      else if (S.tried.size >= 3) { clearTimer(); lockOptions(); S.stage = "confirm"; setTimeout(finishRound, 700); }
+    }
+  }
+  function lockOptions() { root.querySelectorAll(".opt").forEach((b) => (b.disabled = true)); }
+  function goSteal(msg) {
+    if (S.teams.length < 2) { clearTimer(); lockOptions(); setTimeout(finishRound, 700); return; }
+    S.stage = "steal";
+    $("#banner-slot").innerHTML = `<div class="banner">${msg} REPASSE: as outras equipes levantam a plaquinha. Vale 50 pontos.</div>`;
+    startTimer(12);
+  }
+  function askStealers() {
+    S.stage = "confirm"; lockOptions(); const picked = new Set();
+    const others = S.teams.map((t, i) => ({ t, i })).filter((o) => o.i !== S.turn);
+    $("#steal-slot").innerHTML = `<div class="steal"><p>Quem acertou no repasse?</p>
+      <div class="chips">${others.map((o) => `<button class="chip" data-i="${o.i}" aria-pressed="false" style="border-color:${o.t.color}">${esc(o.t.name)}</button>`).join("")}</div>
+      <div class="row" style="justify-content:flex-start"><button class="cta" id="steal-ok" style="font-size:1.05rem;padding:12px 22px">Confirmar pontos</button><button class="ghost" id="steal-none">Ninguém</button></div></div>`;
+    root.querySelectorAll(".steal .chip").forEach((b) => b.addEventListener("click", () => { const i = Number(b.dataset.i); picked.has(i) ? picked.delete(i) : picked.add(i); b.setAttribute("aria-pressed", picked.has(i)); }));
+    $("#steal-ok").addEventListener("click", () => {
+      const who = [...picked]; S.prev = S.teams.map((t) => t.score);
+      who.forEach((i) => (S.teams[i].score += 50));
+      S.result = { ok: false, steal: who.length > 0, pts: 50, who };
+      if (who.length) { confetti(); floatPts("+50"); }
+      setTimeout(finishRound, who.length ? 900 : 0);
+    });
+    $("#steal-none").addEventListener("click", finishRound);
+    $("#steal-ok").focus();
+  }
+
+  // ----- Revelação -----
+  function finishRound() {
+    if (S.phase !== "challenge") return;
+    clearTimer(); S.phase = "reveal";
+    const C = S.C, r = S.result || { ok: false, who: [] };
+    if (!S.prev) S.prev = S.teams.map((t) => t.score);
+    let verdict, sub;
+    if (r.ok) { verdict = `<h2 class="verdict ok">Acertou!</h2>`; sub = `${esc(S.teams[S.turn].name)} leva +${r.pts} pontos.`; }
+    else if (r.steal) { verdict = `<h2 class="verdict ok">Roubou no repasse!</h2>`; sub = r.who.map((i) => esc(S.teams[i].name)).join(", ") + ` +${r.pts} pontos.`; }
+    else { verdict = `<h2 class="verdict no">Não foi dessa vez</h2>`; sub = "Ninguém pontuou. Vamos entender juntos."; }
+    S.pool = S.pool.filter((t) => t !== S.current); S.round++;
+    const p = S.correctPos, correct = C.order[p];
+    const answer = `<div class="answer" data-c="${p}" style="--c:${PLATES[p].color}"><span class="key">${String.fromCharCode(65 + p)}</span><span>${esc(correct.text)}</span></div>`;
+    const card = (ic, color, label, head, text, strike) => `<div class="kc" style="--c:${color}"><span class="ic">${ic}</span><h4>${label}</h4><b class="${strike ? "strike" : ""}">${esc(head)}</b>${text ? `<p>${esc(text)}</p>` : ""}</div>`;
+    let slogan, cards, extra = "", talk, more;
+    if (C.kind === "reg") {
+      const t = C.theme, d = t.tag ? DISC_BY[t.tag] : null;
+      slogan = t.slogan;
+      cards = card("📘", "var(--blue)", "O que diz o Regimento", t.regShort, t.desc) + card("⚖️", "var(--disc)", "Base legal", t.legalShort, t.legal) +
+        (d ? card("🧭", "var(--swap)", "Tipo de discriminação ligado", d.label, d.act) : card("✅", "var(--swap)", "Na prática", "Combinado da turma", "Que atitude a turma assume a partir de hoje com esta regra?"));
+      if (t.extra) extra = `<div class="extra"><b>Você sabia?</b> ${esc(t.extra)}</div>`;
+      talk = t.talk;
+      more = d ? `<h5>${esc(d.label)}: o que é</h5><p>${esc(d.def)}</p>` : "";
+    } else if (C.kind === "disc") {
+      const d = C.theme;
+      slogan = d.slogan;
+      cards = card("📘", "var(--blue)", "Regimento", "Discriminar é proibido", "Art. 26, III: não praticar, induzir ou incitar discriminação.") + card("⚖️", "var(--disc)", "Lei", d.lawShort, d.law) + card("✅", "var(--swap)", "Atitude", d.actShort, d.act);
+      talk = d.talk;
+      const others = C.order.map((o, i) => ({ o, i })).filter((x) => !x.o.correct);
+      more = `<h5>Por que é ${esc(d.label)}?</h5><p>${esc(d.def)}</p><h5>E as outras situações?</h5><ul class="others">${others.map(({ o, i }) => `<li data-c="${i}" style="--c:${PLATES[i].color}"><span class="k">${String.fromCharCode(65 + i)}</span><span>Também é discriminação: <b>${esc(o.type.label)}</b>.</span></li>`).join("")}</ul><h5>O que diz o Regimento</h5><p>${esc(REG_DISC)}</p>`;
+    } else {
+      const sw = C.swap, d = DISC_BY[sw.tag];
+      slogan = d.slogan;
+      cards = card("🚫", "var(--bad)", "Frase a evitar", `"${sw.from}"`, "", true) + card("🔁", "var(--good)", "Que tal trocarmos por", `"${sw.to}"`, "") + card("🧭", "var(--disc)", "Por quê? · " + d.label, d.actShort, sw.why);
+      talk = "Que outra frase comum a turma poderia trocar a partir de hoje?";
+      more = `<h5>Algumas dicas</h5><p>Respeite os pronomes com que as pessoas se identificam. Se alguém tem deficiência, pergunte se precisa de ajuda e como ajudar. Nunca questione orientação sexual, identidade de gênero, raça ou deficiência.</p><h5>${esc(d.label)}: o que é</h5><p>${esc(d.def)}</p>`;
+    }
+    const gained = r.ok ? r.pts : r.steal ? r.pts : 0;
+    show(`<div class="inner ra">
+      <div class="ra-top">
+        <div class="ra-thumb ${C.contain ? "contain" : ""}"><img src="${C.image}" alt="${esc(C.label)}"></div>
+        <div class="ra-head"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${KIND_BADGE[C.kind]}<span class="eyebrow">${C.icon} ${esc(C.label)}</span></div>
+          <div class="line">${verdict}${gained ? `<span class="pts-up" id="pts-up">+0 pontos</span>` : ""}</div><p class="verdict-sub" style="margin:0">${sub}</p></div>
+      </div>
+      ${answer}
+      <p class="slogan" id="slogan"><mark>${esc(slogan)}</mark></p>
+      <div class="cards">${cards}</div>
+      ${extra}
+      <div class="talkbar"><b>💬 Para conversar (1 minuto):</b> ${esc(talk)}</div>
+      ${more ? `<details class="more"><summary>Ver mais: definição completa e detalhes</summary><div class="inner-more">${more}</div></details>` : ""}
+      <div class="rv-foot"><button class="cta" id="next">${S.round >= S.totalRounds || !S.pool.length ? "Ver o pódio" : "Próxima rodada"}</button></div>
+    </div>`);
+    if (C.kind === "trocar") sfx.swap();
+    const ptsEl = $("#pts-up");
+    if (ptsEl) { if (G) { const o = { v: 0 }; G.to(o, { v: gained, duration: 1.2, ease: "power2.out", delay: 0.3, onUpdate: () => (ptsEl.textContent = "+" + Math.round(o.v) + " pontos") }); } else ptsEl.textContent = "+" + gained + " pontos"; }
+    const mk = $("#slogan mark");
+    if (G) {
+      const tl = G.timeline({ defaults: { ease: "power3.out" } });
+      tl.from(".ra-thumb", { scale: 0.5, autoAlpha: 0, duration: 0.5 })
+        .from(".verdict", { scale: 0.5, autoAlpha: 0, duration: 0.6, ease: "back.out(2)" }, "-=0.3")
+        .from(".answer", { y: 20, autoAlpha: 0, duration: 0.4 }, "-=0.2");
+      if (HAS_SPLIT) { const sp = SplitText.create(mk, { type: "words" }); tl.from(sp.words, { y: 30, autoAlpha: 0, duration: 0.5, stagger: 0.08, ease: "back.out(1.8)" }); }
+      tl.add(() => mk.classList.add("on"))
+        .from(".kc", { rotationY: -90, autoAlpha: 0, duration: 0.7, stagger: 0.18, ease: "back.out(1.4)", transformOrigin: "left center" })
+        .from(".extra, .talkbar, .more, .rv-foot", { y: 16, autoAlpha: 0, duration: 0.4, stagger: 0.08 }, "-=0.2");
+    } else mk.classList.add("on");
+    $("#next").addEventListener("click", nextRound);
+  }
+  function nextRound() {
+    const prev = S.prev; S.prev = null;
+    if (S.round >= S.totalRounds || !S.pool.length) return openFinal();
+    S.turn = (S.turn + 1) % S.teams.length; S.phase = "stage"; S.current = null;
+    if (vanta) vanta.setOptions({ color: VANTA_BASE });
+    closeScreen(); drawWheel(); renderBoard(prev); $("#spin").focus();
+  }
+
+  // ----- Final -----
+  function openFinal() {
+    S.phase = "end"; renderBoard(); drawWheel();
+    const ranked = S.teams.map((t, i) => ({ ...t, i })).sort((a, b) => b.score - a.score);
+    const max = Math.max(1, ranked[0].score);
+    const order = ranked.length >= 3 ? [ranked[1], ranked[0], ranked[2], ...ranked.slice(3)] : ranked;
+    sfx.fanfare(); confetti(260);
+    const tie = ranked.length > 1 && ranked[0].score === ranked[1].score;
+    show(`<div class="inner final">
+      <p class="eyebrow">Jornada da convivência concluída</p>
+      <h2 id="final-title">${ranked.length > 1 ? (tie ? "Empate no topo!" : `${esc(ranked[0].name)} venceu!`) : `${esc(ranked[0].name)}: ${ranked[0].score} pontos!`}</h2>
+      ${ranked.length > 1 ? `<div class="podium">${order.map((t) => { const place = ranked.indexOf(t) + 1; const h = 80 + 160 * (t.score / max);
+        return `<div class="pod" data-place="${place}"><span class="nm">${esc(t.name)}</span><span class="pts">${t.score} pts</span><div class="bar" style="height:${h}px;background:${t.color}">${place}º</div></div>`; }).join("")}</div>` : ""}
+      <p class="note">Vocês passaram por ${S.round} temas. Para fechar: cada equipe escolhe uma frase ou atitude que vai trocar a partir de hoje e explica em uma frase.</p>
+      <div class="row"><button class="cta" id="again">Jogar de novo</button><button class="ghost" id="close-final">Ver o palco</button></div>
+    </div>`);
+    if (G) {
+      const tl = G.timeline();
+      if (HAS_SPLIT) { const sp = SplitText.create("#final-title", { type: "words, chars" }); tl.from(sp.chars, { y: 60, rotation: () => G.utils.random(-30, 30), autoAlpha: 0, duration: 0.6, stagger: 0.03, ease: "back.out(2)" }); }
+      [...root.querySelectorAll(".pod")].sort((a, b) => b.dataset.place - a.dataset.place).forEach((pod) =>
+        tl.from(pod.querySelector(".bar"), { scaleY: 0, duration: 0.8, ease: "elastic.out(1, 0.6)" }, "-=0.35").from(pod.querySelectorAll(".nm, .pts"), { y: 20, autoAlpha: 0, duration: 0.3 }, "-=0.5"));
+    }
+    $("#again").addEventListener("click", () => openSetup(true));
+    $("#close-final").addEventListener("click", closeScreen);
+  }
+
+  function openConfirmReset() {
+    if (S.spinning) return;
+    const prevPhase = S.phase; clearTimer();
+    show(`<div class="inner confirm"><h2>Reiniciar o jogo?</h2><p>O placar e os temas sorteados voltam ao início.</p>
+      <div class="row"><button class="cta" id="yes">Reiniciar</button><button class="ghost" id="no">Continuar jogando</button></div></div>`);
+    S.phase = "confirm";
+    $("#yes").addEventListener("click", () => openSetup(true));
+    $("#no").addEventListener("click", () => {
+      if (prevPhase === "stage" || prevPhase === "end") { S.phase = prevPhase; closeScreen(); }
+      else if (prevPhase === "setup") openSetup(false);
+      else if (prevPhase === "suspense") openSuspense(S.current);
+      else if (prevPhase === "challenge") { S.phase = "suspense"; openChallenge(); }
+      else if (prevPhase === "reveal") { S.phase = "challenge"; S.round--; S.pool.push(S.current); finishRound(); }
+    });
+  }
+
+  /* ================= EFEITOS ================= */
+  const fx = $("#fx"), fctx = fx.getContext("2d"); let parts = [], fxRun = false;
+  function confetti(n = 140) {
+    if (REDUCED) return;
+    fx.width = innerWidth; fx.height = innerHeight;
+    const cols = ["#f6921e", "#ffcf4d", "#2f7fe0", "#2aa866", "#e5484d", "#c86bff", "#ffffff"];
+    for (let i = 0; i < n; i++) parts.push({ x: innerWidth / 2 + (Math.random() - 0.5) * 200, y: innerHeight * 0.45, vx: (Math.random() - 0.5) * 16, vy: -Math.random() * 16 - 4, s: 6 + Math.random() * 6, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.3, c: cols[i % cols.length], life: 0 });
+    if (!fxRun) { fxRun = true; requestAnimationFrame(stepFx); }
+  }
+  function stepFx() {
+    fctx.clearRect(0, 0, fx.width, fx.height);
+    parts.forEach((p) => { p.vy += 0.42; p.vx *= 0.99; p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life++; fctx.save(); fctx.translate(p.x, p.y); fctx.rotate(p.r); fctx.fillStyle = p.c; fctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); fctx.restore(); });
+    parts = parts.filter((p) => p.y < fx.height + 40 && p.life < 400);
+    if (parts.length) requestAnimationFrame(stepFx); else { fxRun = false; fctx.clearRect(0, 0, fx.width, fx.height); }
+  }
+  function floatPts(txt) { const d = document.createElement("div"); d.className = "float-pts"; d.textContent = txt; document.body.appendChild(d); setTimeout(() => d.remove(), 1500); }
+
+  /* ================= CONTROLES ================= */
+  $("#spin").addEventListener("click", spin);
+  $("#btn-reset").addEventListener("click", openConfirmReset);
+  $("#btn-sound").addEventListener("click", toggleSound);
+  $("#btn-full").addEventListener("click", toggleFull);
+  function toggleSound() { S.sound = !S.sound; const b = $("#btn-sound"); b.setAttribute("aria-pressed", S.sound); b.textContent = S.sound ? "Som ligado" : "Som desligado"; }
+  function toggleFull() { try { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {}); else document.exitFullscreen().catch(() => {}); } catch (e) {} }
+  document.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "INPUT") return;
+    const k = e.key.toLowerCase();
+    if (k === "m") return toggleSound();
+    if (k === "f") return toggleFull();
+    if (S.phase === "stage" && (k === " " || k === "enter")) { e.preventDefault(); spin(); }
+    else if (S.phase === "suspense" && (k === " " || k === "enter")) { e.preventDefault(); openChallenge(); }
+    else if (S.phase === "challenge" && ["1", "2", "3", "4", "a", "b", "c", "d"].includes(k)) pickOpt("1234".includes(k) ? Number(k) - 1 : "abcd".indexOf(k));
+  });
+  addEventListener("resize", fitCanvas);
+
+  S.pool = buildPool("mista");
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitCanvas);
+  fitCanvas(); renderBoard(); openSetup(true);
+})();
+</script>
